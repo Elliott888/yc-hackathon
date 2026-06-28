@@ -45,7 +45,6 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
-import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker";
 import { Message, MessageContent } from "@/components/ui/message";
 import {
   MessageScroller,
@@ -257,16 +256,6 @@ export function Chat() {
                         isBusy={isBusy}
                       />
                     ))}
-                    {isBusy ? (
-                      <MessageScrollerItem scrollAnchor={false}>
-                        <Marker role="status">
-                          <MarkerIcon>
-                            <Spinner />
-                          </MarkerIcon>
-                          <MarkerContent>Streaming response...</MarkerContent>
-                        </Marker>
-                      </MessageScrollerItem>
-                    ) : null}
                   </MessageScrollerContent>
                 </MessageScrollerViewport>
                 <MessageScrollerButton />
@@ -354,9 +343,6 @@ export function Chat() {
                 </InputGroupAddon>
               </InputGroup>
             </form>
-            <div className="px-0.5 text-center text-xs text-muted-foreground">
-              Streaming uses the OpenAI Responses API. `autoScroll` is enabled.
-            </div>
             {status === "error" ? (
               <p className="text-center text-xs text-destructive">
                 The last request failed. Check your API key, model access, or
