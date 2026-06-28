@@ -26,7 +26,7 @@ test("GitHub intent query builder asks for engineer leads from pain points", () 
   assert.match(source, /painPoint\.subpoints/);
 });
 
-test("GitHub intent lead adapter calls hybrid search and maps trigger evidence", () => {
+test("GitHub intent lead adapter calls hybrid search and maps multiple evidence signals", () => {
   const source = read("src/lib/github-intent-leads.ts");
 
   assert.match(source, /hybrid-github-intent\/src\/engine\.js/);
@@ -35,6 +35,10 @@ test("GitHub intent lead adapter calls hybrid search and maps trigger evidence",
   assert.match(source, /engineer_login/);
   assert.match(source, /icp_fit_score/);
   assert.match(source, /trigger/);
+  assert.match(source, /evidence\?: HybridTriggerEvidence\[\]/);
+  assert.match(source, /result\.evidence/);
+  assert.match(source, /\.slice\(0, 3\)/);
+  assert.doesNotMatch(source, /result\.outreach\?\.join\(" "\)/);
   assert.doesNotMatch(source, /searchLeads/);
 });
 

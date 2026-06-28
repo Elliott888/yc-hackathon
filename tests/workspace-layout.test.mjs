@@ -63,6 +63,19 @@ test("leads table uses buying signals score evidence columns and opens a detail 
   assert.match(source, /averageLeadEvidenceScore\(lead\.evidence, lead\.score\)/);
   assert.match(source, /min-w-\[560px\] overflow-hidden rounded-lg border bg-card/);
   assert.match(source, /TableCell className="px-4 py-4 font-medium"/);
+  assert.match(
+    source,
+    /TableCell className="w-\[28rem\] max-w-\[28rem\] px-4 py-4 align-middle"/
+  );
+  assert.match(
+    source,
+    /overflow-hidden text-ellipsis text-sm leading-6 whitespace-normal/
+  );
+  assert.match(
+    source,
+    /WebkitLineClamp: 3/
+  );
+  assert.match(source, /WebkitBoxOrient: "vertical"/);
   assert.match(source, /function LeadEvidencePanel/);
   assert.match(source, /selectedLead/);
 });

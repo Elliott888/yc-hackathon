@@ -288,12 +288,13 @@ export function rankHybridLeads({
     });
     if (exclusions.length > 0) continue;
 
-    const bestEvidence = chooseBestEvidence({
+    const rankedEvidence = rankEvidence({
       query,
       evidenceItems,
       now,
       buyerProfile: resolvedBuyerProfile
     });
+    const bestEvidence = rankedEvidence[0] ?? null;
     if (
       !bestEvidence ||
       bestEvidence.hybrid_evidence_score < 0.35 ||
@@ -366,6 +367,7 @@ export function rankHybridLeads({
         depth: Number((depth * 10).toFixed(2))
       },
       trigger: publicEvidence(bestEvidence),
+      evidence: dedupeEvidence(rankedEvidence).slice(0, 3).map(publicEvidence),
       exact_phrase_matches: bestEvidence.exact_phrase_matches,
       pain_signal: oneSentencePain(bestEvidence, resolvedBuyerProfile),
       why_this_is_high_intent: whyHighIntent(bestEvidence, resolvedBuyerProfile),
@@ -484,8 +486,8 @@ function exclusionReasons({ login, user, lead, repos, evidenceItems, requireProf
   return reasons;
 }
 
-function chooseBestEvidence({ query, evidenceItems, now, buyerProfile }) {
-  let best = null;
+function rankEvidence({ query, evidenceItems, now, buyerProfile }) {
+  const scoredEvidence = [];
 
   for (const item of evidenceItems) {
     const text = evidenceText(item);
@@ -542,12 +544,10 @@ function chooseBestEvidence({ query, evidenceItems, now, buyerProfile }) {
       selection_score: hybridEvidenceScore + persuasion * 0.25 + directBuyerEvidenceBoost - implementationPenalty
     };
 
-    if (!best || candidate.selection_score > best.selection_score) {
-      best = candidate;
-    }
+    scoredEvidence.push(candidate);
   }
 
-  return best;
+  return scoredEvidence.sort((left, right) => right.selection_score - left.selection_score);
 }
 
 function passesProductFitGate(evidence, buyerProfile) {
@@ -826,6 +826,7 @@ function publicEvidence(evidence) {
   return {
     source: evidence.source,
     type: evidence.type,
+    score: Math.round(Math.max(0, Math.min(100, evidence.hybrid_evidence_score * 100))),
     repo: evidence.repo,
     title: compact(evidence.title, 180),
     url: evidence.url,

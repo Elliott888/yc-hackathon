@@ -24,6 +24,7 @@ type HybridTriggerEvidence = {
   occurred_at?: string;
   matched_topics?: string[];
   pain_signals?: string[];
+  score?: number;
 };
 
 type HybridSearchResultLead = {
@@ -34,6 +35,7 @@ type HybridSearchResultLead = {
   icp_fit_score: number;
   score_breakdown?: Record<string, number>;
   trigger?: HybridTriggerEvidence;
+  evidence?: HybridTriggerEvidence[];
   pain_signal?: string;
   why_this_is_high_intent?: string;
   why_product_fits?: string;
@@ -257,10 +259,6 @@ function mapSearchResultToLead(
     result.pain_signal,
     result.why_this_is_high_intent,
     result.why_product_fits ?? result.why_convex_fits,
-    result.quality_label && result.quality_reason
-      ? `${result.quality_label}: ${result.quality_reason}`
-      : result.quality_label,
-    result.outreach?.join(" "),
     result.sources_used
       ? `Sources: ${[
           result.sources_used.structured ? "structured" : "",
@@ -270,16 +268,21 @@ function mapSearchResultToLead(
           .join(" + ")}`
       : "",
   ].filter(Boolean);
-  const evidence = result.trigger
-    ? [
-        mapTriggerToLeadEvidence({
-          trigger: result.trigger,
-          result,
-          painPoints,
-          leadScore: baseScore,
-        }),
-      ]
-    : [];
+  const resultEvidence =
+    result.evidence && result.evidence.length > 0
+      ? result.evidence
+      : result.trigger
+        ? [result.trigger]
+        : [];
+  const evidence = resultEvidence.slice(0, 3).map((trigger, evidenceIndex) =>
+    mapTriggerToLeadEvidence({
+      trigger,
+      result,
+      painPoints,
+      leadScore: baseScore,
+      evidenceIndex,
+    })
+  );
   const score = averageLeadEvidenceScore(evidence, baseScore);
 
   return {
@@ -296,14 +299,20 @@ function mapTriggerToLeadEvidence({
   result,
   painPoints,
   leadScore,
+  evidenceIndex,
 }: {
   trigger: HybridTriggerEvidence;
   result: HybridSearchResultLead;
   painPoints: PainPoint[];
   leadScore: number;
+  evidenceIndex: number;
 }): LeadEvidence {
   const matchedPainPoint = findMatchedPainPoint(trigger, painPoints);
-  const evidenceScore = clampScore(Math.max(52, leadScore));
+  const evidenceScore = clampScore(
+    typeof trigger.score === "number" && Number.isFinite(trigger.score)
+      ? trigger.score
+      : Math.max(52, leadScore)
+  );
   const source = [
     trigger.repo,
     trigger.source,
@@ -313,7 +322,7 @@ function mapTriggerToLeadEvidence({
     .join(" ");
 
   return {
-    id: `${result.engineer_login}_trigger`,
+    id: `${result.engineer_login}_trigger_${evidenceIndex + 1}`,
     painPointId: matchedPainPoint?.id ?? "github_intent",
     painPointTitle: matchedPainPoint?.title ?? "Hybrid GitHub intent signal",
     score: evidenceScore,

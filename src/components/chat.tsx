@@ -1899,8 +1899,18 @@ function LeadsTablePanel({
                       <TableCell className="px-4 py-4 font-medium">
                         {lead.name}
                       </TableCell>
-                      <TableCell className="max-w-xs whitespace-normal px-4 py-4">
-                        {lead.profile}
+                      <TableCell className="w-[28rem] max-w-[28rem] px-4 py-4 align-middle">
+                        <p
+                          className="overflow-hidden text-ellipsis text-sm leading-6 whitespace-normal"
+                          style={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                          title={lead.profile}
+                        >
+                          {lead.profile}
+                        </p>
                       </TableCell>
                       <TableCell className="px-4 py-4">
                         <ScoreBadge score={score} />
