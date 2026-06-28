@@ -1956,7 +1956,7 @@ type EvidenceGraphData = {
   edges: EvidenceGraphEdge[];
 };
 
-const EVIDENCE_GRAPH_LAYER_X = [0.1, 0.38, 0.64, 0.88];
+const EVIDENCE_GRAPH_LAYER_X = [0.12, 0.34, 0.54, 0.74];
 
 const EVIDENCE_GRAPH_COLORS: Record<EvidenceGraphNodeType, string> = {
   engineer: "#34d399",
