@@ -83,3 +83,7 @@ export function normalizeWebsite(value: string) {
     return "";
   }
 }
+
+export function normalizeResearchTarget(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}

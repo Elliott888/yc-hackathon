@@ -8,12 +8,10 @@ import {
   ChevronDownIcon,
   DatabaseZapIcon,
   EllipsisIcon,
-  GlobeIcon,
   MessageSquareIcon,
   PencilIcon,
   PlusIcon,
   RotateCwIcon,
-  SearchIcon,
   SquareIcon,
   Trash2Icon,
   XIcon,
@@ -60,7 +58,6 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupInput,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { Message, MessageContent } from "@/components/ui/message";
@@ -98,6 +95,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { averageLeadEvidenceScore } from "@/lib/lead-score";
 import { cn } from "@/lib/utils";
 import {
   WORKFLOW_SNAPSHOT_VERSION,
@@ -107,7 +105,7 @@ import {
 } from "@/lib/workflow-storage";
 import {
   createLocalId,
-  normalizeWebsite,
+  normalizeResearchTarget,
   type CompanyResearch,
   type Lead,
   type PainPoint,
@@ -228,13 +226,13 @@ function createResearchActivity({
   };
 }
 
-function createInitialResearchActivities(website: string): ResearchActivity[] {
+function createInitialResearchActivities(target: string): ResearchActivity[] {
   return [
     createResearchActivity({
       id: "client-submit",
       kind: "status",
       status: "done",
-      title: `Submitted ${website}`,
+      title: `Submitted ${target}`,
     }),
   ];
 }
@@ -446,15 +444,17 @@ function useWorkflowState(): WorkflowContextValue {
   async function handleWebsiteSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const website = normalizeWebsite(websiteInput);
+    const researchTarget = normalizeResearchTarget(websiteInput);
 
-    if (!website) {
-      setError("Enter a valid website.");
+    if (!researchTarget) {
+      setError(
+        "Enter a company, product, website, GitHub repo, or developer problem to research."
+      );
       return;
     }
 
     setError("");
-    setResearchActivities(createInitialResearchActivities(website));
+    setResearchActivities(createInitialResearchActivities(researchTarget));
     setStage("researching");
 
     try {
@@ -463,7 +463,7 @@ function useWorkflowState(): WorkflowContextValue {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ website }),
+        body: JSON.stringify({ query: researchTarget }),
       });
 
       if (!response.ok) {
@@ -731,7 +731,7 @@ function WorkflowCurrentRoute() {
   if (stage === "researching") {
     return (
       <ResearchLoadingScreen
-        website={normalizeWebsite(websiteInput)}
+        target={normalizeResearchTarget(websiteInput)}
         activities={researchActivities}
       />
     );
@@ -754,7 +754,7 @@ export function WorkflowInputRoute() {
   if (workflow.stage === "researching") {
     return (
       <ResearchLoadingScreen
-        website={normalizeWebsite(workflow.websiteInput)}
+        target={normalizeResearchTarget(workflow.websiteInput)}
         activities={workflow.researchActivities}
       />
     );
@@ -776,7 +776,7 @@ export function WorkflowPainPointsRoute() {
   if (workflow.stage === "researching") {
     return (
       <ResearchLoadingScreen
-        website={normalizeWebsite(workflow.websiteInput)}
+        target={normalizeResearchTarget(workflow.websiteInput)}
         activities={workflow.researchActivities}
       />
     );
@@ -858,33 +858,32 @@ function EntryScreen({
             Find high-intent buying signals from the code developers write
           </h1>
           <p className="text-muted-foreground">
-            Enter a company website. We&apos;ll understand the product, then search
-            open-source GitHub activity for code-level patterns that reveal
-            developers with high-intent buying signals.
+            Describe a company, product, GitHub repo, or developer problem.
+            We&apos;ll research the context, then search open-source GitHub activity
+            for code-level patterns that reveal developers with high-intent
+            buying signals.
           </p>
         </div>
         <FieldGroup>
-          <Field>
-            <InputGroup className="h-14 rounded-xl">
-              <InputGroupAddon align="inline-start">
-                <GlobeIcon aria-hidden="true" />
-              </InputGroupAddon>
-              <InputGroupInput
-                aria-label="Company website"
-                placeholder="Enter a website..."
-                className="h-14 text-base"
+          <Field data-invalid={error ? true : undefined}>
+            <InputGroup className="rounded-xl bg-background shadow-lg">
+              <InputGroupTextarea
+                aria-label="Research query"
+                aria-invalid={error ? true : undefined}
+                placeholder="Describe a company, repo, or developer problem..."
+                className="min-h-24 text-base leading-6 md:text-sm"
                 value={websiteInput}
                 onChange={(event) => onWebsiteInputChange(event.target.value)}
               />
-              <InputGroupAddon align="inline-end">
+              <InputGroupAddon align="block-end" className="pt-1">
                 <InputGroupButton
                   type="submit"
                   variant="default"
-                  size="sm"
-                  className="h-12 rounded-lg px-4"
+                  size="icon-sm"
+                  className="ml-auto"
                 >
-                  <SearchIcon data-icon="inline-start" />
-                  Go
+                  <ArrowUpIcon />
+                  <span className="sr-only">Go</span>
                 </InputGroupButton>
               </InputGroupAddon>
             </InputGroup>
@@ -954,10 +953,10 @@ function ActivityStatusMark({ status }: { status: ResearchActivityStatus }) {
 }
 
 function ResearchLoadingScreen({
-  website,
+  target,
   activities,
 }: {
-  website: string;
+  target: string;
   activities: ResearchActivity[];
 }) {
   const visibleActivities = activities.slice(-6);
@@ -966,8 +965,8 @@ function ResearchLoadingScreen({
     <main className="flex min-h-dvh items-center justify-center px-4">
       <Card className="w-full max-w-xl overflow-hidden">
         <CardHeader className="gap-1">
-          <CardTitle>Researching company</CardTitle>
-          <CardDescription className="truncate">{website}</CardDescription>
+          <CardTitle>Researching context</CardTitle>
+          <CardDescription className="truncate">{target}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border">
@@ -1873,41 +1872,45 @@ function LeadsTablePanel({
               <TableHeader className="bg-muted/30">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="px-4 py-3">Name</TableHead>
-                  <TableHead className="px-4 py-3">Profile</TableHead>
+                  <TableHead className="px-4 py-3">Buying Signals</TableHead>
                   <TableHead className="w-24 px-4 py-3">Score</TableHead>
                   <TableHead className="px-4 py-3">Evidence</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {leads.map((lead) => (
-                  <TableRow
-                    key={lead.id}
-                    role="button"
-                    tabIndex={0}
-                    className="cursor-pointer"
-                    aria-label={`Open evidence for ${lead.name}`}
-                    onClick={() => openLead(lead)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        openLead(lead);
-                      }
-                    }}
-                  >
-                    <TableCell className="px-4 py-4 font-medium">
-                      {lead.name}
-                    </TableCell>
-                    <TableCell className="max-w-xs whitespace-normal px-4 py-4">
-                      {lead.profile}
-                    </TableCell>
-                    <TableCell className="px-4 py-4">
-                      <ScoreBadge score={lead.score} />
-                    </TableCell>
-                    <TableCell className="max-w-2xl whitespace-normal px-4 py-4">
-                      <EvidenceBullets evidence={lead.evidence} compact />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {leads.map((lead) => {
+                  const score = averageLeadEvidenceScore(lead.evidence, lead.score);
+
+                  return (
+                    <TableRow
+                      key={lead.id}
+                      role="button"
+                      tabIndex={0}
+                      className="cursor-pointer"
+                      aria-label={`Open evidence for ${lead.name}`}
+                      onClick={() => openLead(lead)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openLead(lead);
+                        }
+                      }}
+                    >
+                      <TableCell className="px-4 py-4 font-medium">
+                        {lead.name}
+                      </TableCell>
+                      <TableCell className="max-w-xs whitespace-normal px-4 py-4">
+                        {lead.profile}
+                      </TableCell>
+                      <TableCell className="px-4 py-4">
+                        <ScoreBadge score={score} />
+                      </TableCell>
+                      <TableCell className="max-w-2xl whitespace-normal px-4 py-4">
+                        <EvidenceBullets evidence={lead.evidence} compact />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -1927,6 +1930,335 @@ function ScoreBadge({ score }: { score: number }) {
       {Math.round(score)}
     </Badge>
   );
+}
+
+type EvidenceGraphNodeType = "engineer" | "evidence" | "pain" | "fit";
+
+type EvidenceGraphNode = {
+  id: string;
+  type: EvidenceGraphNodeType;
+  label: string;
+  subtitle?: string;
+  layer: number;
+  radius: number;
+  x: number;
+  y: number;
+};
+
+type EvidenceGraphEdge = {
+  from: string;
+  to: string;
+  stage: number;
+};
+
+type EvidenceGraphData = {
+  nodes: EvidenceGraphNode[];
+  edges: EvidenceGraphEdge[];
+};
+
+const EVIDENCE_GRAPH_LAYER_X = [0.1, 0.38, 0.64, 0.88];
+
+const EVIDENCE_GRAPH_COLORS: Record<EvidenceGraphNodeType, string> = {
+  engineer: "#34d399",
+  evidence: "#a7b0bd",
+  pain: "#fb923c",
+  fit: "#67e8f9",
+};
+
+function EvidenceConnectionGraph({ lead }: { lead: Lead }) {
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const graph = React.useMemo(() => createEvidenceGraphData(lead), [lead]);
+  const summary = React.useMemo(
+    () =>
+      graph.nodes
+        .filter((node) => node.type !== "fit")
+        .map((node) => node.label)
+        .join(", "),
+    [graph]
+  );
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    const drawingCanvas = canvas;
+    const context = drawingCanvas.getContext("2d");
+
+    if (!context) {
+      return;
+    }
+
+    const drawingContext = context;
+    const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let animationFrame = 0;
+
+    function resize() {
+      const bounds = drawingCanvas.getBoundingClientRect();
+      dpr = Math.max(1, window.devicePixelRatio || 1);
+      width = bounds.width;
+      height = bounds.height;
+      drawingCanvas.width = Math.max(1, Math.floor(width * dpr));
+      drawingCanvas.height = Math.max(1, Math.floor(height * dpr));
+    }
+
+    function draw(now: number) {
+      const context = drawingContext;
+      const bounds = drawingCanvas.getBoundingClientRect();
+
+      if (
+        Math.abs(bounds.width - width) > 0.5 ||
+        Math.abs(bounds.height - height) > 0.5
+      ) {
+        resize();
+      }
+
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      context.clearRect(0, 0, width, height);
+
+      const background = context.createLinearGradient(0, 0, width, height);
+      background.addColorStop(0, "#111318");
+      background.addColorStop(1, "#07080b");
+      context.fillStyle = background;
+      context.fillRect(0, 0, width, height);
+
+      context.fillStyle = "rgba(255,255,255,0.05)";
+      for (let x = 22; x < width; x += 28) {
+        for (let y = 22; y < height; y += 28) {
+          context.fillRect(x, y, 1, 1);
+        }
+      }
+
+      for (const edge of graph.edges) {
+        const from = nodeById.get(edge.from);
+        const to = nodeById.get(edge.to);
+
+        if (!from || !to) {
+          continue;
+        }
+
+        const ax = from.x * width;
+        const ay = from.y * height;
+        const bx = to.x * width;
+        const by = to.y * height;
+
+        context.strokeStyle = "rgba(148,163,184,0.28)";
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo(ax, ay);
+        context.lineTo(bx, by);
+        context.stroke();
+
+        if (!prefersReducedMotion) {
+          const progress = ((now * 0.00075 - edge.stage * 0.18) % 1 + 1) % 1;
+          const px = ax + (bx - ax) * progress;
+          const py = ay + (by - ay) * progress;
+          const glow = context.createRadialGradient(px, py, 0, px, py, 9);
+          glow.addColorStop(0, "rgba(190,255,235,0.9)");
+          glow.addColorStop(1, "rgba(52,211,153,0)");
+          context.fillStyle = glow;
+          context.beginPath();
+          context.arc(px, py, 9, 0, Math.PI * 2);
+          context.fill();
+        }
+      }
+
+      for (const node of graph.nodes) {
+        const x = node.x * width;
+        const y = node.y * height;
+        const color = EVIDENCE_GRAPH_COLORS[node.type];
+        const rgb = hexToRgb(color);
+        const pulse =
+          prefersReducedMotion || node.type === "evidence"
+            ? 0
+            : Math.sin(now * 0.002 + node.layer) * 0.08;
+        const radius = node.radius * (1 + pulse);
+        const glow = context.createRadialGradient(
+          x,
+          y,
+          0,
+          x,
+          y,
+          radius * 3.4
+        );
+        glow.addColorStop(0, `rgba(${rgb},0.32)`);
+        glow.addColorStop(1, `rgba(${rgb},0)`);
+        context.fillStyle = glow;
+        context.beginPath();
+        context.arc(x, y, radius * 3.4, 0, Math.PI * 2);
+        context.fill();
+
+        context.fillStyle = color;
+        context.beginPath();
+        context.arc(x, y, radius, 0, Math.PI * 2);
+        context.fill();
+
+        context.strokeStyle =
+          node.type === "engineer" || node.type === "fit"
+            ? "rgba(255,255,255,0.75)"
+            : "rgba(255,255,255,0.36)";
+        context.lineWidth = 1;
+        context.beginPath();
+        context.arc(x, y, radius + 4, 0, Math.PI * 2);
+        context.stroke();
+
+        const label = truncateCanvasLabel(node.label, node.type === "evidence" ? 20 : 24);
+        context.font = "600 11px ui-monospace, SFMono-Regular, Menlo, monospace";
+        context.textBaseline = "middle";
+        const metrics = context.measureText(label);
+        const labelWidth = metrics.width;
+        const textAlign: CanvasTextAlign = "center";
+        const minLabelX = labelWidth / 2 + 8;
+        const maxLabelX = width - labelWidth / 2 - 8;
+        const labelX = Math.min(maxLabelX, Math.max(minLabelX, x));
+        const labelY = y - radius - 13;
+        const bgX = labelX - labelWidth / 2 - 5;
+
+        context.textAlign = textAlign;
+        context.fillStyle = "rgba(7,8,11,0.86)";
+        context.fillRect(bgX, labelY - 8, labelWidth + 10, 17);
+        context.fillStyle = "rgba(241,245,249,0.92)";
+        context.fillText(label, labelX, labelY);
+      }
+
+      animationFrame = requestAnimationFrame(draw);
+    }
+
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas);
+    animationFrame = requestAnimationFrame(draw);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      observer.disconnect();
+    };
+  }, [graph]);
+
+  return (
+    <section className="rounded-lg border bg-card p-3" aria-label="Evidence connection graph">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium">Evidence graph</p>
+          <p className="text-xs text-muted-foreground">
+            Engineer activity mapped to pain points and product fit.
+          </p>
+        </div>
+        <Badge variant="secondary">{lead.evidence.length} signals</Badge>
+      </div>
+      <div className="relative h-64 overflow-hidden rounded-md border bg-black">
+        <canvas
+          ref={canvasRef}
+          className="size-full"
+          aria-hidden="true"
+        />
+      </div>
+      <p className="sr-only">{summary}</p>
+    </section>
+  );
+}
+
+function createEvidenceGraphData(lead: Lead): EvidenceGraphData {
+  const nodes: EvidenceGraphNode[] = [];
+  const edges: EvidenceGraphEdge[] = [];
+  const painNodeByTitle = new Map<string, EvidenceGraphNode>();
+
+  nodes.push({
+    id: "engineer",
+    type: "engineer",
+    label: lead.name,
+    subtitle: lead.profile,
+    layer: 0,
+    radius: 10,
+    x: EVIDENCE_GRAPH_LAYER_X[0],
+    y: 0.5,
+  });
+
+  lead.evidence.forEach((evidence, index) => {
+    const y = distributeGraphY(index, lead.evidence.length);
+    const evidenceId = `evidence:${evidence.id}`;
+
+    nodes.push({
+      id: evidenceId,
+      type: "evidence",
+      label: `Signal ${index + 1}`,
+      subtitle: `${evidence.source}: ${evidence.description}`,
+      layer: 1,
+      radius: 6,
+      x: EVIDENCE_GRAPH_LAYER_X[1],
+      y,
+    });
+    edges.push({ from: "engineer", to: evidenceId, stage: 0 });
+
+    const painTitle = evidence.painPointTitle || "Matched pain point";
+    let painNode = painNodeByTitle.get(painTitle);
+
+    if (!painNode) {
+      painNode = {
+        id: `pain:${painNodeByTitle.size}`,
+        type: "pain",
+        label: painTitle,
+        layer: 2,
+        radius: 8,
+        x: EVIDENCE_GRAPH_LAYER_X[2],
+        y: 0.5,
+      };
+      painNodeByTitle.set(painTitle, painNode);
+      nodes.push(painNode);
+    }
+
+    edges.push({ from: evidenceId, to: painNode.id, stage: 1 });
+  });
+
+  const painNodes = [...painNodeByTitle.values()];
+
+  painNodes.forEach((node, index) => {
+    node.y = distributeGraphY(index, painNodes.length);
+    edges.push({ from: node.id, to: "fit", stage: 2 });
+  });
+
+  nodes.push({
+    id: "fit",
+    type: "fit",
+    label: "Product fit",
+    subtitle: "Relevant outreach reason",
+    layer: 3,
+    radius: 11,
+    x: EVIDENCE_GRAPH_LAYER_X[3],
+    y: 0.5,
+  });
+
+  if (lead.evidence.length === 0) {
+    edges.push({ from: "engineer", to: "fit", stage: 0 });
+  }
+
+  return { nodes, edges };
+}
+
+function distributeGraphY(index: number, count: number) {
+  if (count <= 1) {
+    return 0.5;
+  }
+
+  return 0.18 + (index / (count - 1)) * 0.64;
+}
+
+function truncateCanvasLabel(value: string, maxLength: number) {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
+}
+
+function hexToRgb(hex: string) {
+  const value = Number.parseInt(hex.slice(1), 16);
+
+  return `${(value >> 16) & 255},${(value >> 8) & 255},${value & 255}`;
 }
 
 function EvidenceBullets({
@@ -1992,6 +2324,8 @@ function LeadEvidencePanel({
     return null;
   }
 
+  const score = averageLeadEvidenceScore(lead.evidence, lead.score);
+
   return (
     <aside
       role="dialog"
@@ -2016,10 +2350,11 @@ function LeadEvidencePanel({
       </div>
       <div className="border-b p-4">
         <p className="text-xs font-medium text-muted-foreground">Average score</p>
-        <div className="mt-2 text-3xl font-semibold">{Math.round(lead.score)}</div>
+        <div className="mt-2 text-3xl font-semibold">{Math.round(score)}</div>
       </div>
       <ScrollArea className="min-h-0 flex-1">
-        <div className="p-4">
+        <div className="space-y-4 p-4">
+          <EvidenceConnectionGraph lead={lead} />
           <EvidenceBullets evidence={lead.evidence} />
         </div>
       </ScrollArea>

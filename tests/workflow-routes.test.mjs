@@ -41,6 +41,27 @@ test("workflow persists the latest browser snapshot and clears it on reset", () 
   assert.match(chat, /clearWorkflowSnapshot\(\)/);
 });
 
+test("entry screen accepts a free-form research query", () => {
+  const chat = read("src/components/chat.tsx");
+  const researchRoute = read("src/app/api/research/route.ts");
+
+  assert.match(chat, /aria-label="Research query"/);
+  assert.match(
+    chat,
+    /placeholder="Describe a company, repo, or developer problem\.\.\."/
+  );
+  assert.match(chat, /<InputGroupTextarea/);
+  assert.match(chat, /rounded-xl bg-background shadow-lg/);
+  assert.match(chat, /align="block-end"/);
+  assert.match(chat, /size="icon-sm"/);
+  assert.match(chat, /JSON\.stringify\(\{ query: researchTarget \}\)/);
+  assert.doesNotMatch(chat, /Enter a valid website/);
+  assert.match(researchRoute, /query\?: unknown/);
+  assert.match(researchRoute, /normalizeResearchTarget/);
+  assert.match(researchRoute, /Research this user request/);
+  assert.doesNotMatch(researchRoute, /Enter a valid website URL/);
+});
+
 test("workflow storage exposes a versioned latest-snapshot localStorage contract", () => {
   const storagePath = new URL("../src/lib/workflow-storage.ts", import.meta.url);
 

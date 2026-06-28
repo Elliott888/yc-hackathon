@@ -49,13 +49,18 @@ test("code examples render as borderless text rows without icon affordance", () 
   assert.match(source, /text-muted-foreground/);
 });
 
-test("leads table uses profile score evidence columns and opens a detail panel", () => {
+test("leads table uses buying signals score evidence columns and opens a detail panel", () => {
   const source = read("src/components/chat.tsx");
 
   assert.match(source, /<TableHead className="px-4 py-3">Name<\/TableHead>/);
-  assert.match(source, /<TableHead className="px-4 py-3">Profile<\/TableHead>/);
+  assert.match(
+    source,
+    /<TableHead className="px-4 py-3">Buying Signals<\/TableHead>/
+  );
+  assert.doesNotMatch(source, />Profile<\/TableHead>/);
   assert.match(source, /<TableHead className="w-24 px-4 py-3">Score<\/TableHead>/);
   assert.match(source, /<TableHead className="px-4 py-3">Evidence<\/TableHead>/);
+  assert.match(source, /averageLeadEvidenceScore\(lead\.evidence, lead\.score\)/);
   assert.match(source, /min-w-\[560px\] overflow-hidden rounded-lg border bg-card/);
   assert.match(source, /TableCell className="px-4 py-4 font-medium"/);
   assert.match(source, /function LeadEvidencePanel/);

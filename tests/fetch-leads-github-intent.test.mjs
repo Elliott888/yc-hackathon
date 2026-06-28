@@ -26,14 +26,16 @@ test("GitHub intent query builder asks for engineer leads from pain points", () 
   assert.match(source, /painPoint\.subpoints/);
 });
 
-test("GitHub intent lead adapter calls Track B search and maps evidence", () => {
+test("GitHub intent lead adapter calls hybrid search and maps trigger evidence", () => {
   const source = read("src/lib/github-intent-leads.ts");
 
-  assert.match(source, /dist\/track-b-intelligence\/src\/search\.js/);
-  assert.match(source, /searchLeads/);
+  assert.match(source, /hybrid-github-intent\/src\/engine\.js/);
+  assert.match(source, /searchHybrid/);
+  assert.match(source, /useAllIndexes/);
   assert.match(source, /engineer_login/);
-  assert.match(source, /final_score/);
-  assert.match(source, /evidence\.slice\(0, 3\)/);
+  assert.match(source, /icp_fit_score/);
+  assert.match(source, /trigger/);
+  assert.doesNotMatch(source, /searchLeads/);
 });
 
 test("frontend sends company name with pain points and labels results as engineer leads", () => {
