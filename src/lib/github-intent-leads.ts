@@ -74,10 +74,10 @@ export async function fetchGithubIntentLeads({
   limit = 10,
 }: FetchGithubIntentLeadsInput): Promise<Lead[]> {
   const structuredRoot = resolveGithubIntentRoot();
-  assertProcessedIndexExists(structuredRoot);
+  const indexSources = resolveHybridIndexSources(structuredRoot);
+  assertHybridIndexSourcesExist(indexSources);
 
   const query = buildGithubIntentQuery({ painPoints, companyName });
-  const indexSources = resolveHybridIndexSources(structuredRoot);
   const { searchHybrid } = (await import(
     "../../hybrid-github-intent/src/engine.js"
   )) as HybridSearchModule;
@@ -107,7 +107,12 @@ function resolveGithubIntentRoot() {
 
 function resolveHybridIndexSources(structuredRoot: string): HybridIndexSource[] {
   const neuralLeadsPath = resolveNeuralLeadsPath();
-  const workspaceRoot = resolve(process.cwd(), "github-intent-engine", "data", "workspaces");
+  const workspaceRoot = resolve(
+    process.cwd(),
+    "github-intent-engine",
+    "data",
+    "workspaces"
+  );
   const workspaceSources: HybridIndexSource[] = [
     {
       id: "fullstack-backend-pain-doubled",
@@ -140,13 +145,46 @@ function resolveHybridIndexSources(structuredRoot: string): HybridIndexSource[] 
     return workspaceSources;
   }
 
-  return [
+  const rootSources: HybridIndexSource[] = [
     {
       id: "github-intent-engine",
       structuredRoot,
       neuralLeadsPath,
     },
-  ];
+  ].filter((source) => processedIndexExists(source.structuredRoot));
+
+  if (rootSources.length > 0) {
+    return rootSources;
+  }
+
+  const productionFallback = resolveProductionFallbackIndexSource();
+
+  return productionFallback ? [productionFallback] : [];
+}
+
+function resolveProductionFallbackIndexSource(): HybridIndexSource | null {
+  const structuredRoot = resolve(
+    process.cwd(),
+    "src",
+    "data",
+    "hybrid-structured"
+  );
+  const neuralLeadsPath = resolve(
+    process.cwd(),
+    "neural-github-intent",
+    "data-track-a-1000",
+    "scored_leads.ndjson"
+  );
+
+  if (!processedIndexExists(structuredRoot) || !existsSync(neuralLeadsPath)) {
+    return null;
+  }
+
+  return {
+    id: "production-neural-fallback",
+    structuredRoot,
+    neuralLeadsPath,
+  };
 }
 
 function resolveNeuralLeadsPath() {
@@ -171,14 +209,25 @@ function resolveNeuralLeadsPath() {
   return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
 }
 
-function assertProcessedIndexExists(rootDir: string) {
-  if (!processedIndexExists(rootDir)) {
-    const rankedLeadsPath = resolveProcessedIndexPath(rootDir);
-
-    throw new Error(
-      `Hybrid GitHub intent index is missing at ${rankedLeadsPath}. Run "cd github-intent-engine && npm run harvest && npm run build-intelligence" before searching.`
-    );
+function assertHybridIndexSourcesExist(indexSources: HybridIndexSource[]) {
+  if (indexSources.length > 0) {
+    return;
   }
+
+  const fallbackRoot = resolve(
+    process.cwd(),
+    "src",
+    "data",
+    "hybrid-structured"
+  );
+  const checkedPaths = [
+    resolveProcessedIndexPath(resolveGithubIntentRoot()),
+    resolveProcessedIndexPath(fallbackRoot),
+  ].join(", ");
+
+  throw new Error(
+    `Hybrid GitHub intent index is missing. Checked ${checkedPaths}. Run "cd github-intent-engine && npm run harvest && npm run build-intelligence" before searching.`
+  );
 }
 
 function processedIndexExists(rootDir: string) {

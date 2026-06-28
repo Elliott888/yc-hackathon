@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
@@ -36,6 +36,25 @@ test("GitHub intent lead adapter calls hybrid search and maps trigger evidence",
   assert.match(source, /icp_fit_score/);
   assert.match(source, /trigger/);
   assert.doesNotMatch(source, /searchLeads/);
+});
+
+test("GitHub intent lead adapter has a deployable fallback index", () => {
+  const source = read("src/lib/github-intent-leads.ts");
+  const nextConfig = read("next.config.ts");
+  const fallbackIndexPath = new URL(
+    "../src/data/hybrid-structured/data/processed/ranked_leads.jsonl",
+    import.meta.url
+  );
+
+  assert.match(source, /production-neural-fallback/);
+  assert.match(source, /"src",\s*"data",\s*"hybrid-structured"/);
+  assert.match(source, /assertHybridIndexSourcesExist\(indexSources\)/);
+  assert.doesNotMatch(source, /assertProcessedIndexExists\(structuredRoot\)/);
+  assert.ok(existsSync(fallbackIndexPath));
+  assert.match(nextConfig, /outputFileTracingIncludes/);
+  assert.match(nextConfig, /["']\/api\/fetch-leads["']/);
+  assert.match(nextConfig, /src\/data\/hybrid-structured/);
+  assert.match(nextConfig, /neural-github-intent\/data-track-a-1000\/scored_leads\.ndjson/);
 });
 
 test("frontend sends company name with pain points and labels results as engineer leads", () => {
