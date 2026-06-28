@@ -1,0 +1,244 @@
+id: convex
+label: Convex realtime backend outreach
+target_prompt: Find engineers who have been actively contributing to real-time sync, reactive databases, or backend-as-a-service repos in the last 90 days. I want to reach out to them about Convex.
+days: 90
+seed_repos:
+  - electric-sql/electric
+  - rocicorp/replicache
+  - pubkey/rxdb
+  - yjs/yjs
+  - automerge/automerge
+  - supabase/supabase
+  - appwrite/appwrite
+  - pocketbase/pocketbase
+  - liveblocks/liveblocks
+  - partykit/partykit
+  - instantdb/instant
+  - powersync-ja/powersync-js
+  - rocicorp/mono
+  - firebase/firebase-js-sdk
+  - firebase/firebase-tools
+  - cloudflare/workers-sdk
+  - trpc/trpc
+  - prisma/prisma
+  - hasura/graphql-engine
+  - nhost/nhost
+  - parse-community/parse-server
+  - directus/directus
+  - posthog/posthog
+  - plausible/analytics
+  - GrowthBook/growthbook
+  - umami-software/umami
+  - rudderlabs/rudder-server
+  - openreplay/openreplay
+  - ClickHouse/ClickHouse
+  - continuedev/continue
+  - Aider-AI/aider
+  - modelcontextprotocol/typescript-sdk
+  - modelcontextprotocol/python-sdk
+  - openai/openai-node
+  - openai/openai-python
+  - vercel/ai
+  - langchain-ai/langchainjs
+  - run-llama/LlamaIndexTS
+  - twentyhq/twenty
+  - n8n-io/n8n
+  - activepieces/activepieces
+  - nocodb/nocodb
+  - rowyio/rowy
+  - budibase/budibase
+categories:
+  realtime_sync:
+    label: Realtime sync
+    terms:
+      - realtime
+      - real-time
+      - sync
+      - synchronization
+      - replication
+      - websocket
+      - subscriptions
+      - changefeed
+  reactive_database:
+    label: Reactive database
+    terms:
+      - reactive
+      - live query
+      - live queries
+      - invalidation
+      - database
+      - materialized
+      - subscription
+  backend_as_a_service:
+    label: Backend as a service
+    terms:
+      - backend-as-a-service
+      - baas
+      - serverless backend
+      - firebase alternative
+      - supabase alternative
+      - appwrite
+      - parse server
+      - nhost
+      - auth
+      - storage
+      - functions
+  cache_state:
+    label: Cache and backend state
+    terms:
+      - cache invalidation
+      - invalidation
+      - cache
+      - stale data
+      - optimistic update
+      - backend state
+      - state sync
+      - reactive state
+      - query cache
+  local_first:
+    label: Local-first
+    terms:
+      - local-first
+      - offline-first
+      - offline
+      - sqlite
+      - client-side
+      - conflict resolution
+  crdt_collaboration:
+    label: CRDT collaboration
+    terms:
+      - crdt
+      - collaboration
+      - collaborative
+      - automerge
+      - yjs
+  analytics_growth:
+    label: Analytics and growth engineering
+    terms:
+      - analytics
+      - product analytics
+      - event tracking
+      - events
+      - cohort
+      - funnel
+      - attribution
+      - feature flag
+      - experiment
+      - realtime analytics
+      - growth
+      - ingestion
+      - warehouse
+  ai_devtools:
+    label: AI developer tools
+    terms:
+      - coding agent
+      - ai agent
+      - agentic
+      - copilot
+      - code assistant
+      - mcp
+      - model context protocol
+      - tool call
+      - function calling
+      - prompt
+      - eval
+      - llm
+      - embeddings
+      - vector store
+      - openai
+      - claude
+      - codex
+  workflow_automation:
+    label: Workflow automation and spreadsheets
+    terms:
+      - spreadsheet
+      - crm
+      - sales workflow
+      - enrichment
+      - automation
+      - workflow
+      - table
+      - kanban
+      - trigger
+      - integration
+      - connector
+      - no-code
+positive_terms:
+  - realtime
+  - sync
+  - replication
+  - live query
+  - live queries
+  - subscription
+  - subscriptions
+  - invalidation
+  - cache invalidation
+  - stale data
+  - query cache
+  - conflict resolution
+  - websocket
+  - local-first
+  - offline-first
+  - crdt
+  - serverless backend
+  - backend functions
+  - firebase alternative
+  - supabase alternative
+  - simpler full-stack backend
+  - full-stack backend
+  - backend state
+  - reactive state
+  - state sync
+  - analytics
+  - product analytics
+  - event tracking
+  - funnel
+  - attribution
+  - feature flag
+  - experiment
+  - realtime analytics
+  - ingestion
+  - coding agent
+  - ai agent
+  - agentic
+  - mcp
+  - model context protocol
+  - tool call
+  - function calling
+  - eval
+  - embeddings
+  - vector store
+  - spreadsheet
+  - crm
+  - enrichment
+  - workflow automation
+stack_terms:
+  - typescript
+  - react
+  - next.js
+  - node
+  - postgres
+  - sqlite
+  - websocket
+  - serverless
+  - firebase
+  - supabase
+  - cloudflare
+  - prisma
+  - graphql
+  - clickhouse
+  - kafka
+  - analytics
+  - llm
+  - mcp
+  - openai
+  - claude
+  - codex
+  - python
+negative_terms:
+  - tutorial
+  - example
+  - sample
+  - docs only
+  - typo
+  - readme

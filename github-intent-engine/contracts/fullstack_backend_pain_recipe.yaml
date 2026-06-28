@@ -1,0 +1,104 @@
+id: fullstack_backend_pain_founders_engineers
+label: Founders and engineers discussing backend complexity and BaaS alternatives
+target_product: Convex
+target_entity:
+  - founder
+  - engineer
+time_window_days: 90
+
+intent_phrases:
+  - cache invalidation
+  - cache coherence
+  - stale cache
+  - realtime cache
+  - WebSocket infrastructure
+  - websocket scaling
+  - websocket reconnect
+  - websocket reliability
+  - Firebase alternative
+  - Firebase alternatives
+  - alternative to Firebase
+  - Supabase alternative
+  - Supabase alternatives
+  - alternative to Supabase
+  - simpler backend
+  - full-stack backend
+  - backend as a service
+  - BaaS
+  - realtime backend
+  - reactive backend
+  - serverless backend
+
+repo_categories:
+  - backend-as-a-service
+  - Firebase alternative
+  - Supabase alternative
+  - real-time backend
+  - WebSocket infrastructure
+  - cache invalidation
+  - reactive database
+  - serverless backend
+  - full-stack framework
+  - local-first
+
+topic_terms:
+  - cache invalidation
+  - cache coherence
+  - stale data
+  - invalidation
+  - websocket
+  - websockets
+  - realtime
+  - real-time
+  - subscriptions
+  - live query
+  - sync
+  - replication
+  - backend functions
+  - serverless functions
+  - database triggers
+  - auth
+  - database
+  - full-stack
+  - Firebase
+  - Supabase
+  - Appwrite
+  - PocketBase
+  - Parse
+  - Nhost
+  - Hasura
+
+strong_stacks:
+  - TypeScript
+  - React
+  - Next.js
+  - Node.js
+  - Postgres
+  - SQLite
+  - WebSocket
+  - Firebase
+  - Supabase
+
+person_signals:
+  founder_terms:
+    - founder
+    - co-founder
+    - building
+    - indie hacker
+    - startup
+  engineer_terms:
+    - engineer
+    - developer
+    - maintainer
+    - contributor
+    - architect
+
+negative_terms:
+  - tutorial
+  - sample
+  - example
+  - demo
+  - toy
+  - awesome-list
+  - course
+  - bootcamp

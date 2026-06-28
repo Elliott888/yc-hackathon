@@ -1,0 +1,30 @@
+# BaaS / full-stack backend platforms
+supabase/supabase
+firebase/firebase-js-sdk
+appwrite/appwrite
+pocketbase/pocketbase
+get-convex/convex-backend
+nhost/nhost
+parse-community/parse-server
+hasura/graphql-engine
+directus/directus
+amplication/amplication
+
+# Realtime / sync / reactive data
+electric-sql/electric
+rocicorp/replicache
+pubkey/rxdb
+yjs/yjs
+automerge/automerge
+liveblocks/liveblocks
+partykit/partykit
+instantdb/instant
+aspen-cloud/triplit
+vlcn-io/cr-sqlite
+
+# Full-stack frameworks and simpler backend developer experience
+redwoodjs/redwood
+blitz-js/blitz
+wasp-lang/wasp
+sst/sst
+trpc/trpc

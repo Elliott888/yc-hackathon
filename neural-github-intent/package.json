@@ -1,0 +1,17 @@
+{
+  "name": "neural-github-intent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "test:e2e": "node --test test/e2e.test.js",
+    "harvest:convex": "node src/cli.js run --recipe recipes/convex.yaml --out data --days 90",
+    "harvest:fixture": "node src/cli.js run --recipe recipes/convex.yaml --fixture test/fixtures/convex-github.json --out data --days 90",
+    "validate": "node src/cli.js validate --leads data/scored_leads.ndjson --days 90",
+    "train-neural": "node src/cli.js train-neural --examples data/training_examples.ndjson --model-out model-experiments/neural_reranker.json --eval-out evals/neural_reranker_eval.json"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

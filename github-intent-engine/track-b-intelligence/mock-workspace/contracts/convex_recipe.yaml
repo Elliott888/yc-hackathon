@@ -1,0 +1,49 @@
+id: convex_realtime_sync_engineers
+label: Engineers working on Convex-shaped backend problems
+target_product: Convex
+target_entity: engineer
+time_window_days: 90
+
+repo_categories:
+  - real-time sync
+  - reactive database
+  - backend-as-a-service
+  - local-first
+  - offline-first
+  - CRDT/collaboration
+  - serverless backend
+  - database sync
+
+topic_terms:
+  - sync
+  - replication
+  - realtime
+  - live query
+  - subscriptions
+  - reactive data
+  - cache invalidation
+  - optimistic update
+  - conflict resolution
+  - CRDT
+  - WebSocket
+  - SQLite sync
+  - Postgres changefeed
+  - serverless function
+  - backend state
+
+strong_stacks:
+  - TypeScript
+  - React
+  - Next.js
+  - Node.js
+  - Postgres
+  - SQLite
+  - WebSocket
+
+negative_terms:
+  - tutorial
+  - sample
+  - example
+  - demo
+  - toy
+  - awesome-list

@@ -1,0 +1,16 @@
+{
+  "query_id": "convex_realtime_sync_engineers",
+  "k_values": [
+    5,
+    10
+  ],
+  "metrics": {
+    "precision_at_5": 0.5,
+    "precision_at_10": 0.5,
+    "ndcg_at_10": 1,
+    "evidence_validity": 1,
+    "time_window_validity": 1
+  },
+  "lead_count": 2,
+  "labeled_lead_count": 2
+}

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["track-b-intelligence/src/**/*.ts", "track-b-intelligence/test/**/*.ts"],
+  "exclude": [
+    "track-a-harvester/test",
+    "track-b-intelligence/src/buildEngineerProfiles.ts",
+    "track-b-intelligence/src/classifyRepos.ts",
+    "track-b-intelligence/src/evidence.ts",
+    "track-b-intelligence/src/extractTopics.ts",
+    "track-b-intelligence/src/jsonl.ts",
+    "track-b-intelligence/src/loadRawData.ts",
+    "track-b-intelligence/src/scoreLeads.ts"
+  ]
+}

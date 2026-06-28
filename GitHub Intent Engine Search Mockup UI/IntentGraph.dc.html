@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: #06080c; }
+  body { font-family: 'JetBrains Mono', ui-monospace, monospace; color: #c9d2dc; -webkit-font-smoothing: antialiased; overflow: hidden; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+  @keyframes blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; background: rgba(255,255,255,0.12); border-radius: 4px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%; background: #46e6b0; cursor: pointer; box-shadow: 0 0 8px rgba(70,230,176,0.7); }
+</style>
+</helmet>
+<div style="position:fixed; inset:0; display:grid; grid-template-columns:372px 1fr 436px; grid-template-rows:60px 1fr 210px; grid-template-areas:'head head head' 'left center right' 'foot foot foot'; background:#06080c;">
+
+  <!-- HEADER -->
+  <div style="grid-area:head; display:flex; align-items:center; justify-content:space-between; padding:0 22px; border-bottom:1px solid rgba(255,255,255,0.07); background:linear-gradient(180deg,#0a0d13,#080a0f);">
+    <div style="display:flex; align-items:center; gap:14px;">
+      <div style="width:20px; height:20px; border-radius:50%; background:radial-gradient(circle at 35% 30%,#7fffcf,#46e6b0 45%,#0b6b4d 90%); box-shadow:0 0 16px rgba(70,230,176,0.7);"></div>
+      <div style="font-weight:700; letter-spacing:1px; font-size:17px; color:#e9eef3;">intentgraph<span style="color:#46e6b0;">://</span>convex</div>
+      <div style="font-size:12px; color:#5a6675; letter-spacing:0.5px; padding-left:10px; border-left:1px solid rgba(255,255,255,0.08);">high-intent engineer trace</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:22px; font-size:12px; color:#8a96a4;">
+      <div style="display:flex; gap:16px;">
+        <span style="display:flex; align-items:center; gap:7px;"><i style="width:9px;height:9px;border-radius:50%;background:#46e6b0;box-shadow:0 0 7px #46e6b0;"></i>engineer</span>
+        <span style="display:flex; align-items:center; gap:7px;"><i style="width:9px;height:9px;border-radius:50%;background:#6b7785;"></i>evidence</span>
+        <span style="display:flex; align-items:center; gap:7px;"><i style="width:9px;height:9px;border-radius:50%;background:#c08bff;box-shadow:0 0 7px #c08bff;"></i>pattern</span>
+        <span style="display:flex; align-items:center; gap:7px;"><i style="width:9px;height:9px;border-radius:50%;background:#ff7a45;box-shadow:0 0 7px #ff7a45;"></i>pain</span>
+        <span style="display:flex; align-items:center; gap:7px;"><i style="width:9px;height:9px;border-radius:50%;background:#7fffcf;box-shadow:0 0 8px #7fffcf;"></i>Convex</span>
+      </div>
+      <div style="color:#46e6b0; letter-spacing:0.5px;">{{ nodeCount }} nodes</div>
+    </div>
+  </div>
+
+  <!-- LEFT: SEARCH + FILTERS -->
+  <div style="grid-area:left; border-right:1px solid rgba(255,255,255,0.07); background:#080a0f; display:flex; flex-direction:column; overflow:hidden;">
+    <div style="padding:20px 20px 16px; overflow-y:auto;">
+      <div style="font-size:11px; letter-spacing:1.5px; color:#5a6675; margin-bottom:10px;">// INTENT QUERY</div>
+      <div style="position:relative; background:#0c0f16; border:1px solid rgba(70,230,176,0.25); border-radius:7px; padding:14px 15px; font-size:13px; line-height:1.7; color:#cfe9df; min-height:138px; box-shadow:inset 0 0 26px rgba(70,230,176,0.04);">
+        <span style="color:#46e6b0;">&gt; </span>{{ typed }}<span style="display:inline-block; width:8px; height:16px; background:#46e6b0; vertical-align:-3px; animation:blink 1s step-end infinite; margin-left:1px;"></span>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px; margin-top:14px;">
+        <button onClick="{{ runTrace }}" style="flex:1; background:#46e6b0; color:#05140e; border:none; border-radius:7px; padding:12px; font-family:inherit; font-weight:700; font-size:13px; letter-spacing:0.5px; cursor:pointer; box-shadow:0 0 18px rgba(70,230,176,0.35);">▶ RUN TRACE</button>
+        <div style="font-size:11px; color:#5a6675; width:92px; text-align:right;">{{ statusLabel }}</div>
+      </div>
+      <div style="height:4px; background:rgba(255,255,255,0.07); border-radius:4px; margin-top:12px; overflow:hidden;">
+        <div style="height:100%; width:{{ scanBar }}; background:linear-gradient(90deg,#46e6b0,#7fffcf); transition:width 0.1s linear; box-shadow:0 0 8px rgba(70,230,176,0.6);"></div>
+      </div>
+
+      <div style="font-size:11px; letter-spacing:1.5px; color:#5a6675; margin:26px 0 11px; display:flex; justify-content:space-between;"><span>// PAIN SIGNALS</span><span style="color:#46e6b0; cursor:pointer;" onClick="{{ clearFilters }}">{{ filterHint }}</span></div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        <sc-for list="{{ painList }}" as="p" hint-placeholder-count="9">
+          <div onClick="{{ p.onClick }}" style="{{ p.style }}">{{ p.short }}</div>
+        </sc-for>
+      </div>
+
+      <div style="font-size:11px; letter-spacing:1.5px; color:#5a6675; margin:26px 0 10px;">// MIN INTENT SCORE — <span style="color:#46e6b0;">{{ minScore }}</span></div>
+      <input type="range" min="40" max="98" step="1" value="{{ minScore }}" onInput="{{ setMinScore }}" style="width:100%;">
+
+      <div style="font-size:11px; letter-spacing:1.5px; color:#5a6675; margin:28px 0 11px; display:flex; justify-content:space-between;"><span>// RANKED LEADS</span><span style="color:#7a8696;">{{ resultCount }} match</span></div>
+      <div style="display:flex; flex-direction:column; gap:7px;">
+        <sc-for list="{{ leads }}" as="ld" hint-placeholder-count="12">
+          <div onClick="{{ ld.onClick }}" style="{{ ld.rowStyle }}">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <span style="color:#46e6b0; font-size:14px;">@{{ ld.handle }}</span>
+              <span style="{{ ld.scoreStyle }}">{{ ld.score }}</span>
+            </div>
+            <div style="font-size:11px; color:#6a7480; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ ld.role }}</div>
+            <div style="height:4px; background:rgba(255,255,255,0.06); border-radius:4px; margin-top:9px; overflow:hidden;"><div style="{{ ld.barStyle }}"></div></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: GRAPH -->
+  <div style="grid-area:center; position:relative; background:radial-gradient(ellipse 80% 70% at 50% 45%,#0a0f17 0%,#06080c 75%); overflow:hidden;">
+    <canvas ref="{{ canvasRef }}" style="position:absolute; inset:0; width:100%; height:100%; display:block;"></canvas>
+    <div style="position:absolute; top:16px; left:18px; font-size:11px; color:#46e6b0; letter-spacing:1.5px; pointer-events:none;">{{ graphTitle }}</div>
+    <div style="position:absolute; top:16px; right:18px; font-size:10px; color:#4a5563; letter-spacing:1.5px; pointer-events:none;">ENG → EVIDENCE → PATTERN → PAIN → FIT</div>
+    <div style="position:absolute; bottom:16px; left:18px; font-size:11px; color:#56687c; pointer-events:none;">{{ centerHint }}</div>
+  </div>
+
+  <!-- RIGHT: CONTEXTUAL DETAIL -->
+  <div style="grid-area:right; border-left:1px solid rgba(255,255,255,0.07); background:#080a0f; overflow-y:auto;">
+
+    <!-- NONE -->
+    <sc-if value="{{ rightNone }}" hint-placeholder-val="{{ true }}">
+      <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px; text-align:center; gap:16px;">
+        <div style="width:52px; height:52px; border-radius:50%; border:1px dashed rgba(70,230,176,0.4); display:flex; align-items:center; justify-content:center; color:#46e6b0; font-size:22px;">◎</div>
+        <div style="font-size:14px; color:#7a8696; line-height:1.8;">Select a lead, or click an engineer<br>node, to trace its reasoning path.</div>
+        <div style="font-size:11px; color:#46566a; letter-spacing:0.5px;">engineer → evidence → pattern → pain → fit</div>
+      </div>
+    </sc-if>
+
+    <!-- OVERVIEW -->
+    <sc-if value="{{ rightOverview }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:18px 22px 28px;">
+        <div onClick="{{ ov.clearSel }}" style="font-size:11px; color:#7a8696; cursor:pointer; letter-spacing:0.5px; margin-bottom:16px;">‹ all leads</div>
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:14px;">
+          <div style="min-width:0;">
+            <div style="font-size:21px; font-weight:700; color:#46e6b0;">@{{ ov.handle }}</div>
+            <div style="font-size:13px; color:#cfd6df; margin-top:5px;">{{ ov.name }}</div>
+            <div style="font-size:11.5px; color:#6a7480; margin-top:5px;">{{ ov.role }} · {{ ov.loc }}</div>
+          </div>
+          <div style="position:relative; width:86px; height:86px; flex:none;">
+            <svg width="86" height="86" viewBox="0 0 86 86" style="transform:rotate(-90deg);">
+              <circle cx="43" cy="43" r="37" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"></circle>
+              <circle cx="43" cy="43" r="37" fill="none" stroke="#46e6b0" stroke-width="6" stroke-linecap="round" stroke-dasharray="{{ ov.ringDash }}" style="filter:drop-shadow(0 0 6px rgba(70,230,176,0.7));"></circle>
+            </svg>
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+              <div style="font-size:25px; font-weight:700; color:#e9eef3; line-height:1;">{{ ov.score }}</div>
+              <div style="font-size:9px; color:#5a6675; letter-spacing:1.5px; margin-top:3px;">INTENT</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size:11px; letter-spacing:1.5px; color:#5a6675; margin:24px 0 9px;">// WHY RELEVANT</div>
+        <div style="font-size:13px; line-height:1.85; color:#b4bec9;">{{ ov.why }}</div>
+
+        <div style="font-size:11px; letter-spacing:1.5px; color:#5a6675; margin:22px 0 9px;">// OUTREACH ANGLE</div>
+        <div style="font-size:12.5px; line-height:1.8; color:#cfe9df; background:#0c1410; border-left:3px solid #46e6b0; padding:13px 14px; border-radius:0 6px 6px 0;">{{ ov.angle }}</div>
+
+        <div style="font-size:11px; letter-spacing:1.5px; color:#5a6675; margin:22px 0 10px;">// MATCHED PAIN POINTS <span style="color:#46566a;">· click to inspect</span></div>
+        <div style="display:flex; flex-direction:column; gap:7px;">
+          <sc-for list="{{ ov.matchedPains }}" as="mp" hint-placeholder-count="3">
+            <div onClick="{{ mp.onClick }}" style="display:flex; align-items:center; gap:10px; font-size:12.5px; color:#e7d3c6; background:rgba(255,122,69,0.07); border:1px solid rgba(255,122,69,0.22); border-radius:6px; padding:10px 12px; cursor:pointer;">
+              <i style="width:7px;height:7px;border-radius:50%;background:#ff7a45;box-shadow:0 0 7px #ff7a45;flex:none;"></i>{{ mp.label }}<span style="margin-left:auto; color:#7a8696;">›</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="font-size:11px; letter-spacing:1.5px; color:#5a6675; margin:22px 0 11px;">// SCORE BREAKDOWN</div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <sc-for list="{{ ov.breakdown }}" as="b" hint-placeholder-count="5">
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:11.5px; color:#8a96a4; margin-bottom:6px;"><span>{{ b.label }}</span><span style="color:#cfd6df;">{{ b.value }}</span></div>
+              <div style="height:5px; background:rgba(255,255,255,0.06); border-radius:5px; overflow:hidden;"><div style="{{ b.barStyle }}"></div></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- STEP -->
+    <sc-if value="{{ rightStep }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:18px 22px 28px;">
+        <div onClick="{{ step.back }}" style="font-size:11px; color:#7a8696; cursor:pointer; letter-spacing:0.5px; margin-bottom:18px;">‹ back to @{{ step.handle }} overview</div>
+        <div style="display:flex; align-items:center; gap:9px; margin-bottom:14px;">
+          <span style="{{ step.kindStyle }}">{{ step.kind }}</span>
+          <sc-if value="{{ step.badge }}" hint-placeholder-val="{{ false }}"><span style="{{ step.badgeStyle }}">{{ step.badge }}</span></sc-if>
+          <span style="font-size:11px; color:#6a7480;">{{ step.sub }}</span>
+        </div>
+        <div style="font-size:18px; font-weight:600; line-height:1.45; color:#e9eef3;">{{ step.title }}</div>
+
+        <div style="font-size:11px; letter-spacing:1.5px; color:#5a6675; margin:24px 0 9px;">// {{ step.bodyLabel }}</div>
+        <div style="font-size:14px; line-height:1.9; color:#bcc6d2;">{{ step.body }}</div>
+
+        <div style="font-size:11px; letter-spacing:1.5px; color:#5a6675; margin:22px 0 10px;">// {{ step.chipsLabel }}</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <sc-for list="{{ step.chips }}" as="c" hint-placeholder-count="2">
+            <div style="{{ c.style }}">{{ c.label }}</div>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ step.link }}" hint-placeholder-val="{{ false }}">
+          <a href="{{ step.linkHref }}" target="_blank" style="display:inline-flex; align-items:center; gap:8px; margin-top:22px; font-size:12.5px; color:#46e6b0; text-decoration:none; border:1px solid rgba(70,230,176,0.3); border-radius:6px; padding:10px 14px;">view on GitHub ↗</a>
+        </sc-if>
+
+        <div style="margin-top:26px; padding-top:18px; border-top:1px solid rgba(255,255,255,0.06); font-size:11.5px; color:#56687c; line-height:1.7;">{{ step.nextHint }}</div>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- FOOTER: EVIDENCE TIMELINE -->
+  <div style="grid-area:foot; border-top:1px solid rgba(255,255,255,0.07); background:#080a0f; padding:14px 22px 16px; display:flex; flex-direction:column;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+      <div style="font-size:11px; letter-spacing:1.5px; color:#5a6675;">// EVIDENCE TIMELINE — <span style="color:#cfd6df;">{{ timelineTitle }}</span></div>
+      <div style="font-size:11px; color:#46566a;">{{ timelineRange }}</div>
+    </div>
+    <div style="position:relative; flex:1; margin-top:10px;">
+      <div style="position:absolute; left:0; right:0; top:50%; height:1px; background:rgba(255,255,255,0.10);"></div>
+      <sc-for list="{{ timeline }}" as="ev" hint-placeholder-count="8">
+        <div onClick="{{ ev.onClick }}" title="{{ ev.tip }}" style="{{ ev.wrapStyle }}">
+          <div style="{{ ev.dotStyle }}"></div>
+          <div style="{{ ev.cardStyle }}">
+            <div style="display:flex; align-items:center; gap:7px;"><span style="{{ ev.badgeStyle }}">{{ ev.type }}</span><span style="font-size:10px; color:#46e6b0;">@{{ ev.who }}</span></div>
+            <div style="font-size:11px; color:#bcc6d2; margin-top:5px; line-height:1.4; max-width:170px;">{{ ev.title }}</div>
+            <div style="font-size:9.5px; color:#46566a; margin-top:4px;">{{ ev.dateLabel }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:10px; color:#46566a; margin-top:4px;"><span>{{ tlStart }}</span><span>{{ tlEnd }}</span></div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { selectedId: null, focusNodeId: null, activePains: [], minScore: 40, scanPct: 0, scanning: false, typed: '', timelineFocus: null };
+    this.QUERY = 'Find engineers likely to need Convex because they are dealing with frontend/server state sync, realtime, CRUD plumbing, schema churn, AI app state, workflow state, multi-user permissions, or type drift.';
+    this.LAYERX = [0.10, 0.31, 0.52, 0.73, 0.92];
+    this.COLORS = { engineer:'#46e6b0', evidence:'#8d99a8', pattern:'#c08bff', pain:'#ff7a45', convex:'#7fffcf' };
+    this.hoverId = null;
+    this.path = null;
+    this.filterVisible = null;
+    this.buildData();
+  }
+
+  buildData() {
+    const PAINS = [
+      {id:'p1',short:'state sync',label:'manual frontend/server state sync',fit:'Convex queries are reactive — server state streams to the client automatically, so the manual useEffect/setState sync layer disappears entirely.'},
+      {id:'p2',short:'realtime',label:'realtime · WebSocket/SSE/polling',fit:'Convex subscriptions push live updates to every client. No WebSocket lifecycle, reconnect logic, or polling to maintain.'},
+      {id:'p3',short:'CRUD APIs',label:'repetitive backend CRUD APIs',fit:'Convex mutations and queries replace hand-written CRUD endpoints — one typed function per operation, no controller boilerplate.'},
+      {id:'p4',short:'schema churn',label:'fast schema / migration changes',fit:'Convex keeps schema in code with safe, incremental migrations, so schema changes never break the client contract.'},
+      {id:'p5',short:'AI app state',label:'durable AI app state',fit:'Convex gives agents durable, reactive state on the server — memory and run history persist across reloads with no localStorage hacks.'},
+      {id:'p6',short:'workflow status',label:'job / workflow status tracking',fit:'Convex stores job and run status reactively — clients subscribe instead of polling, and status is always current.'},
+      {id:'p7',short:'permissions',label:'multi-user permissions & workspaces',fit:'Convex provides auth and access rules as primitives, so workspace permissions skip the hand-rolled RBAC matrix.'},
+      {id:'p8',short:'type drift',label:'DB/API/frontend type drift',fit:'Convex generates end-to-end types from one schema — DB, API, and client stay aligned with zero drift.'},
+      {id:'p9',short:'shared state',label:'interactive shared product state',fit:'Convex shared documents stay consistent across users in real time — no custom CRDT or socket plumbing.'},
+    ];
+    const CP = [
+      {id:'cp1',label:'useEffect fetch → setState',pains:['p1','p9']},
+      {id:'cp2',label:'WebSocket reconnect loop',pains:['p2']},
+      {id:'cp3',label:'polling setInterval(status)',pains:['p6','p2']},
+      {id:'cp4',label:'REST CRUD boilerplate',pains:['p3']},
+      {id:'cp5',label:'Prisma migrate churn',pains:['p4','p8']},
+      {id:'cp6',label:'duplicated zod types',pains:['p8']},
+      {id:'cp7',label:'agent memory in localStorage',pains:['p5']},
+      {id:'cp8',label:'custom RBAC matrix',pains:['p7']},
+      {id:'cp9',label:'Yjs/CRDT shared docs',pains:['p9','p2']},
+    ];
+    const EVT = {
+      cp1:[{t:'PR',title:'Refactor dashboard to sync server state in useEffect'},{t:'issue',title:'State out of sync across tabs after mutation'},{t:'commit',title:'fix: stale state after optimistic update'}],
+      cp2:[{t:'commit',title:'reconnect websocket on drop + heartbeat'},{t:'issue',title:'WS connection drops under load'},{t:'PR',title:'add socket heartbeat ping/pong'}],
+      cp3:[{t:'commit',title:'poll job status every 3s'},{t:'issue',title:'status badge lags behind worker'},{t:'PR',title:'exponential backoff on status poll'}],
+      cp4:[{t:'PR',title:'scaffold CRUD endpoints for projects'},{t:'commit',title:'add update/delete handlers for resources'},{t:'issue',title:'too much boilerplate per new resource'}],
+      cp5:[{t:'PR',title:'prisma migrate: add column + backfill'},{t:'commit',title:'schema churn: rename fields across models'},{t:'issue',title:'migration broke staging data'}],
+      cp6:[{t:'PR',title:'sync zod schema with prisma types'},{t:'issue',title:'type drift between api and client'},{t:'commit',title:'regenerate shared type definitions'}],
+      cp7:[{t:'commit',title:'persist agent memory to localStorage'},{t:'issue',title:'agent loses context on reload'},{t:'PR',title:'add durable conversation store'}],
+      cp8:[{t:'PR',title:'role matrix for workspace members'},{t:'issue',title:'permissions leak across orgs'},{t:'commit',title:'guard routes by workspace role'}],
+      cp9:[{t:'PR',title:'integrate Yjs for shared canvas'},{t:'issue',title:'concurrent edits conflict'},{t:'commit',title:'CRDT merge for shared product state'}],
+    };
+    const ENG = [
+      {h:'kael-dev',n:'Kael Öztürk',role:'Founder · AI writing copilot',proj:'inkstream',score:94,loc:'Berlin',pat:['cp7','cp1','cp3'],
+        why:'Building an AI writing copilot and repeatedly fighting durable agent state plus dashboard sync. Memory lives in localStorage and breaks on reload — a classic signal for reactive persistence.',
+        angle:'Lead with durable AI state: "saw inkstream stores agent memory in localStorage — Convex gives you reactive, persistent agent state with zero glue."',
+        bd:{Pain:96,Evidence:92,Recency:95,Influence:84,Stack:97}},
+      {h:'miravnt',n:'Mira Venn',role:'Founder · realtime whiteboard',proj:'cofield',score:91,loc:'Lisbon',pat:['cp9','cp2','cp1'],
+        why:'Shipping a realtime collaborative whiteboard. Hand-rolling CRDT merges and WebSocket reconnect logic on top of manual client state — exactly the plumbing Convex removes.',
+        angle:'"cofield is wiring Yjs + custom sockets for shared canvas state. Convex gives you reactive shared state and live queries without the socket layer."',
+        bd:{Pain:94,Evidence:90,Recency:92,Influence:80,Stack:95}},
+      {h:'0xtanaka',n:'Ren Tanaka',role:'Eng · fintech dashboard',proj:'ledgerwise',score:88,loc:'Tokyo',pat:['cp4','cp6','cp5'],
+        why:'Maintaining a fintech dashboard with heavy CRUD boilerplate, duplicated zod/prisma types, and frequent migrations. Type drift between API and client is a recurring source of bugs.',
+        angle:'"ledgerwise duplicates zod across api+client. Convex generates end-to-end types from your schema — no drift, no CRUD boilerplate."',
+        bd:{Pain:90,Evidence:88,Recency:86,Influence:78,Stack:90}},
+      {h:'soph-builds',n:'Sophie Adler',role:'Solo founder · SaaS CRM',proj:'pipenote',score:86,loc:'Austin',pat:['cp4','cp1','cp6'],
+        why:'Indie SaaS CRM. Writing the same CRUD endpoints per resource and patching state-sync bugs between server and UI. A solo founder optimizing for velocity.',
+        angle:'"pipenote is hand-writing CRUD per resource as a solo founder. Convex queries+mutations cut that to a function — reactive UI for free."',
+        bd:{Pain:88,Evidence:84,Recency:88,Influence:70,Stack:88}},
+      {h:'dmitryql',n:'Dmitry Kuznetsov',role:'Eng · agent framework',proj:'agentkit-rs',score:90,loc:'Tbilisi',pat:['cp7','cp3','cp6'],
+        why:'Building an agent framework that polls task status and stores memory ad-hoc. Workflow status tracking and durable AI state are core, and currently bespoke.',
+        angle:'"agentkit polls for task status and stores memory by hand. Convex gives durable agent state + reactive status without polling."',
+        bd:{Pain:93,Evidence:89,Recency:90,Influence:86,Stack:92}},
+      {h:'lenahooks',n:'Lena Park',role:'Founder · collaborative design tool',proj:'framenest',score:84,loc:'Seoul',pat:['cp9','cp1','cp2'],
+        why:'Collaborative design tool with shared editable canvases. Combining custom sockets, CRDT prototypes and manual client state — a high realtime + shared-state intent.',
+        angle:'"framenest needs live shared canvas state. Convex subscriptions keep every client in sync without managing sockets."',
+        bd:{Pain:89,Evidence:82,Recency:84,Influence:74,Stack:90}},
+      {h:'gomez-io',n:'Tomas Gomez',role:'Eng · devtools startup',proj:'shipgate',score:79,loc:'Buenos Aires',pat:['cp4','cp5','cp6'],
+        why:'Devtools startup with rapid schema iteration and a CRUD-heavy API. Migrations churn weekly and types drift across layers as the product pivots.',
+        angle:'"shipgate is iterating schema weekly with drift across layers. Convex schema + codegen keeps types aligned through churn."',
+        bd:{Pain:84,Evidence:78,Recency:80,Influence:72,Stack:85}},
+      {h:'yuki-rt',n:'Yuki Mori',role:'Eng · multiplayer game backend',proj:'arenaloop',score:87,loc:'Osaka',pat:['cp2','cp3','cp9'],
+        why:'Multiplayer game backend juggling WebSocket lifecycles, status polling and shared match state. A strong realtime + shared-state signal across recent commits.',
+        angle:'"arenaloop hand-manages sockets + shared match state. Convex reactive state + live queries simplify multiplayer sync."',
+        bd:{Pain:90,Evidence:86,Recency:88,Influence:76,Stack:88}},
+      {h:'harpreet-k',n:'Harpreet Kaur',role:'Eng · healthcare workflows',proj:'carequeue',score:82,loc:'Toronto',pat:['cp6','cp3','cp4'],
+        why:'Healthcare workflow tool tracking job/case status and fighting type drift between services. Status tracking is polled; types diverge across boundaries.',
+        angle:'"carequeue polls case status and battles type drift. Convex reactive queries + typed schema remove both."',
+        bd:{Pain:85,Evidence:80,Recency:82,Influence:73,Stack:84}},
+      {h:'felixn',n:'Felix Naumann',role:'Founder · AI agents infra',proj:'loopmind',score:89,loc:'Munich',pat:['cp7','cp5','cp3'],
+        why:'AI agents infra startup. Needs durable agent memory, frequent schema changes for tool definitions, and workflow status tracking — three top Convex-fit signals.',
+        angle:'"loopmind needs durable agent state + evolving schemas + run status. Convex is a purpose-built reactive backend for AI apps."',
+        bd:{Pain:95,Evidence:88,Recency:91,Influence:82,Stack:94}},
+      {h:'aria-codes',n:'Aria Beck',role:'Founder · team workspace app',proj:'deskhub',score:83,loc:'Amsterdam',pat:['cp8','cp1','cp9'],
+        why:'Team workspace app implementing custom RBAC, shared docs and manual state sync. Permissions + shared-state intent is strong and recent.',
+        angle:'"deskhub is hand-building RBAC + shared workspace state. Convex auth + reactive shared state cut the permission plumbing."',
+        bd:{Pain:88,Evidence:81,Recency:85,Influence:75,Stack:86}},
+      {h:'nadia-ops',n:'Nadia Reyes',role:'Eng · internal tools platform',proj:'opsboard',score:77,loc:'Mexico City',pat:['cp8','cp4','cp6'],
+        why:'Internal tools platform with workspace permissions, CRUD-per-tool boilerplate and type drift. Permissions + CRUD intent suit a reactive typed backend.',
+        angle:'"opsboard rebuilds RBAC + CRUD per internal tool. Convex gives typed mutations + access control as primitives."',
+        bd:{Pain:82,Evidence:76,Recency:78,Influence:70,Stack:83}},
+    ];
+
+    const cpById = {}; CP.forEach(c=>cpById[c.id]=c);
+    const painById = {}; PAINS.forEach(p=>painById[p.id]=p);
+
+    const nodes = [];
+    const edges = [];
+    const edgeSet = new Set();
+    const addEdge = (a,b,stage)=>{ const k=a+'|'+b; if(edgeSet.has(k))return; edgeSet.add(k); edges.push({a,b,key:k,stage}); };
+
+    nodes.push({id:'cvx',type:'convex',layer:4,label:'Convex',r:16});
+    PAINS.forEach(p=>{ nodes.push({id:p.id,type:'pain',layer:3,label:p.short,full:p.label,fit:p.fit,short:p.short,r:8}); addEdge(p.id,'cvx',3); });
+    CP.forEach(c=>{ nodes.push({id:c.id,type:'pattern',layer:2,label:c.label,pains:c.pains,r:7}); c.pains.forEach(pid=>addEdge(c.id,pid,2)); });
+
+    const START = new Date('2025-09-01').getTime();
+    const SPAN = new Date('2026-06-15').getTime() - START;
+    const leads = [];
+    ENG.forEach((e,ei)=>{
+      const id = 'eng_'+e.h;
+      const painSet = new Set();
+      e.pat.forEach(cp=>cpById[cp].pains.forEach(p=>painSet.add(p)));
+      const matchedPains = [...painSet].map(pid=>painById[pid]);
+      const evidence = [];
+      e.pat.forEach((cp,j)=>{
+        const tmpl = EVT[cp][(ei+j)%3];
+        const eid = id+'_e'+j;
+        const t = ((ei*3 + j*5) % 17)/17;
+        const date = START + t*SPAN + j*1.2e7;
+        nodes.push({id:eid,type:'evidence',layer:1,label:tmpl.t,r:4.4,evType:tmpl.t,title:tmpl.title,repo:e.proj,date,cp});
+        addEdge(id,eid,0);
+        addEdge(eid,cp,1);
+        evidence.push({id:eid,type:tmpl.t,title:tmpl.title,repo:e.proj,date,cp});
+      });
+      evidence.sort((a,b)=>a.date-b.date);
+      nodes.push({id,type:'engineer',layer:0,label:'@'+e.h,r:8+ (e.score-77)*0.16, score:e.score});
+
+      const pNodes = new Set([id,'cvx']);
+      const pEdges = new Set();
+      const patSet = new Set(e.pat);
+      evidence.forEach(ev=>{ pNodes.add(ev.id); pEdges.add(id+'|'+ev.id); pEdges.add(ev.id+'|'+ev.cp); });
+      patSet.forEach(cp=>{ pNodes.add(cp); cpById[cp].pains.forEach(pid=>{ pNodes.add(pid); pEdges.add(cp+'|'+pid); pEdges.add(pid+'|cvx'); }); });
+      painSet.forEach(pid=>pNodes.add(pid));
+
+      leads.push({ id, handle:e.h, name:e.n, role:e.role, loc:e.loc, score:e.score, proj:e.proj,
+        why:e.why, angle:e.angle, bd:e.bd, matchedPains, painIds:[...painSet], evidence,
+        pathNodes:pNodes, pathEdges:pEdges });
+    });
+
+    this.PAINS = PAINS;
+    this.nodes = nodes;
+    this.edges = edges;
+    this.leads = leads;
+    this.painById = painById;
+    this.cpById = cpById;
+    this.nodeById = {}; nodes.forEach(n=>this.nodeById[n.id]=n);
+
+    // even vertical distribution per layer (default layout) + small deterministic jitter
+    const byLayer = {};
+    nodes.forEach(n=>{ (byLayer[n.layer]=byLayer[n.layer]||[]).push(n); });
+    Object.values(byLayer).forEach(arr=>{
+      arr.forEach((n,i)=>{ n.ty = arr.length===1 ? 0.5 : (0.08 + (i/(arr.length-1))*0.84); });
+    });
+    let s=1;
+    const rnd=()=>{ s=(s*16807)%2147483647; return s/2147483647-0.5; };
+    nodes.forEach((n)=>{
+      n.fx = this.LAYERX[n.layer];
+      n.jx = rnd()*0.022; n.jy = rnd()*0.020;
+      n.x = n.fx+n.jx; n.y = n.ty+n.jy;
+      n.fty = n.ty;
+      n.z = (Math.random()*2-1);
+      n.a = 1;
+    });
+  }
+
+  componentDidMount() {
+    this.mounted = true;
+    if (this.canvas) this.setupCanvas();
+    this.typeQuery();
+    setTimeout(()=>this.runScan(), 350);
+    this._loop = this.loop.bind(this);
+    this.raf = requestAnimationFrame(this._loop);
+  }
+  componentWillUnmount() {
+    this.mounted = false;
+    cancelAnimationFrame(this.raf);
+    if (this._ro) this._ro.disconnect();
+  }
+
+  get canvasRef() {
+    return (el) => { if (el && el !== this.canvas) { this.canvas = el; if (this.mounted) this.setupCanvas(); } };
+  }
+
+  setupCanvas() {
+    const c = this.canvas;
+    this.ctx = c.getContext('2d');
+    this.resize();
+    this._ro = new ResizeObserver(()=>this.resize());
+    this._ro.observe(c.parentElement);
+    c.addEventListener('mousemove', e=>this.onMove(e));
+    c.addEventListener('mouseleave', ()=>{ this.hoverId=null; });
+    c.addEventListener('click', e=>this.onClick(e));
+  }
+  resize() {
+    const c = this.canvas; if(!c) return;
+    const r = c.parentElement.getBoundingClientRect();
+    this.dpr = window.devicePixelRatio || 1;
+    this.W = r.width; this.H = r.height;
+    c.width = r.width*this.dpr; c.height = r.height*this.dpr;
+  }
+
+  typeQuery() {
+    clearInterval(this._typer);
+    this.setState({typed:''});
+    let i = 0;
+    this._typer = setInterval(()=>{
+      i += 2;
+      if (i >= this.QUERY.length) { i = this.QUERY.length; clearInterval(this._typer); }
+      this.setState({typed: this.QUERY.slice(0,i)});
+    }, 13);
+  }
+
+  runScan() {
+    this.setState({scanning:true, scanPct:0});
+    this.frozen = false;
+    const start = performance.now();
+    const dur = 1700;
+    const step = (now)=>{
+      const t = Math.min(1,(now-start)/dur);
+      this.setState({scanPct:t});
+      if (t<1) requestAnimationFrame(step);
+      else this.setState({scanning:false});
+    };
+    requestAnimationFrame(step);
+  }
+
+  runTrace() { this.typeQuery(); this.runScan(); }
+
+  selectLead(id) {
+    const lead = this.leads.find(l=>l.id===id) || null;
+    this.path = lead;
+    if (lead) {
+      const byL = {};
+      this.nodes.forEach(n=>{ if (lead.pathNodes.has(n.id)) (byL[n.layer]=byL[n.layer]||[]).push(n); });
+      Object.keys(byL).forEach(k=>{
+        const arr = byL[k].sort((a,b)=> (a.date||0)-(b.date||0) || (a.id<b.id?-1:1));
+        arr.forEach((n,i)=>{ n.fty = arr.length===1 ? 0.5 : (0.14 + (i/(arr.length-1))*0.72); });
+      });
+    }
+    this.frozen = false;
+    this.setState({selectedId:id, focusNodeId:null, timelineFocus:null});
+  }
+  clearSelection() {
+    this.path = null;
+    this.frozen = false;
+    this.setState({selectedId:null, focusNodeId:null, timelineFocus:null});
+  }
+
+  togglePain(pid) {
+    const a = this.state.activePains.slice();
+    const i = a.indexOf(pid);
+    if (i>=0) a.splice(i,1); else a.push(pid);
+    this.computeFilter(a);
+    this.setState({activePains:a});
+  }
+  clearFilters() { this.filterVisible = null; this.setState({activePains:[]}); }
+
+  computeFilter(a) {
+    a = a || this.state.activePains;
+    if (!a.length) { this.filterVisible = null; return; }
+    const vis = new Set(['cvx']);
+    this.PAINS.forEach(p=>vis.add(p.id));
+    this.leads.forEach(l=>{
+      if (l.painIds.some(p=>a.includes(p))) {
+        l.pathNodes.forEach(n=>vis.add(n));
+      }
+    });
+    this.filterVisible = vis;
+  }
+
+  onMove(e) {
+    const r = this.canvas.getBoundingClientRect();
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    this.mx = mx; this.my = my;
+    const sel = this.path;
+    let best=null, bd=1e9;
+    for (const n of this.nodes) {
+      if (sel && !sel.pathNodes.has(n.id)) continue;
+      const rad = (n.r*(sel?2:1)) + 9;
+      const dx = this.dispX(n)-mx, dy = this.dispY(n)-my;
+      const d = dx*dx+dy*dy;
+      if (d < rad*rad && d<bd) { bd=d; best=n; }
+    }
+    this.hoverId = best ? best.id : null;
+    this.canvas.style.cursor = best ? 'pointer' : 'default';
+  }
+  onClick() {
+    const id = this.hoverId;
+    const sel = this.path;
+    if (!sel) {
+      if (!id) return;
+      const n = this.nodeById[id];
+      if (n.type==='engineer') this.selectLead(id);
+      else if (n.type==='pain') this.togglePain(id);
+      return;
+    }
+    if (!id || !sel.pathNodes.has(id)) return;
+    const n = this.nodeById[id];
+    if (n.type==='engineer') this.setState({focusNodeId:null, timelineFocus:null});
+    else this.setState({focusNodeId:id, timelineFocus: n.type==='evidence'?id:null});
+  }
+
+  dispX(n){ const par = this.mx!=null ? ((this.mx/this.W)-0.5) : 0; return n.x*this.W + par*n.z*5; }
+  dispY(n){ const par = this.my!=null ? ((this.my/this.H)-0.5) : 0; return n.y*this.H + par*n.z*5; }
+
+  loop(now) {
+    if(!this.mounted) return;
+    if (this.state.scanning || !this.frozen) this.updatePositions();
+    this.draw(now);
+    this.raf = requestAnimationFrame(this._loop);
+  }
+
+  updatePositions() {
+    const sel = this.path;
+    let energy = 0;
+    for (const n of this.nodes) {
+      let tx, ty;
+      if (sel) {
+        if (sel.pathNodes.has(n.id)) { tx = n.fx; ty = n.fty; } else { tx = n.x; ty = n.y; }
+      } else { tx = n.fx + n.jx; ty = n.ty + n.jy; }
+      const dx = tx-n.x, dy = ty-n.y;
+      n.x += dx*0.14; n.y += dy*0.14;
+      energy += dx*dx + dy*dy;
+    }
+    if (!this.state.scanning && energy < 1e-6) {
+      this.settleCount = (this.settleCount||0)+1;
+      if (this.settleCount > 16) this.frozen = true;
+    } else this.settleCount = 0;
+  }
+
+  layerReveal(layer) {
+    if (!this.state.scanning && this.state.scanPct>=1) return 1;
+    const t = this.state.scanPct;
+    const lr = (t*1.35 - layer*0.16)/0.30;
+    return Math.max(0, Math.min(1, lr));
+  }
+
+  draw(now) {
+    const ctx = this.ctx; if(!ctx) return;
+    const W=this.W, H=this.H, dpr=this.dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,W,H);
+
+    ctx.fillStyle='rgba(255,255,255,0.028)';
+    const gs=40;
+    for(let x=gs;x<W;x+=gs) for(let y=gs;y<H;y+=gs){ ctx.fillRect(x,y,1,1); }
+
+    const sel = this.path;
+    const fv = this.filterVisible;
+    const hov = this.hoverId;
+    const fid = this.state.focusNodeId;
+
+    for (const n of this.nodes){
+      let ta;
+      if (sel) ta = sel.pathNodes.has(n.id) ? 1 : 0;
+      else if (fv && !fv.has(n.id)) ta = 0.09;
+      else ta = 1;
+      n.a += (ta-n.a)*0.14;
+    }
+
+    // edges
+    for (const e of this.edges){
+      const a=this.nodeById[e.a], b=this.nodeById[e.b];
+      const inPath = sel && sel.pathEdges.has(e.key);
+      if (sel && !inPath) continue;
+      const baseA = Math.min(a.a,b.a);
+      if (baseA<=0.02) continue;
+      const ax=this.dispX(a), ay=this.dispY(a), bx=this.dispX(b), by=this.dispY(b);
+      if (inPath){
+        ctx.strokeStyle='rgba(70,230,176,'+(0.5*baseA)+')';
+        ctx.lineWidth=1.6;
+        ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+        let t=((now*0.0008) - e.stage*0.14)%1; if(t<0)t+=1;
+        const px=ax+(bx-ax)*t, py=ay+(by-ay)*t;
+        const g=ctx.createRadialGradient(px,py,0,px,py,8);
+        g.addColorStop(0,'rgba(190,255,235,'+baseA+')'); g.addColorStop(1,'rgba(70,230,176,0)');
+        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(px,py,8,0,7); ctx.fill();
+      } else {
+        ctx.strokeStyle='rgba(140,160,185,'+(0.09*baseA)+')';
+        ctx.lineWidth=0.7;
+        ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+      }
+    }
+
+    // nodes
+    const order=[...this.nodes].sort((p,q)=>p.z-q.z);
+    for (const n of order){
+      const rev=this.layerReveal(n.layer);
+      const alpha=n.a*rev;
+      if (alpha<=0.02) continue;
+      const x=this.dispX(n), y=this.dispY(n);
+      const inPath = sel && sel.pathNodes.has(n.id);
+      const isFocus = n.id===fid;
+      const isHov = hov===n.id;
+      let r=n.r*(1+0.10*n.z)*rev;
+      if (sel && inPath) r*=2.0;
+      if (isFocus) r*=1.15;
+      const col=this.COLORS[n.type];
+      const rgb=this.hex2rgb(col);
+      const glowR=r*(n.type==='convex'?4.5:3.2);
+      const g=ctx.createRadialGradient(x,y,0,x,y,glowR);
+      const ga=(isFocus?0.6:0.32)*alpha;
+      g.addColorStop(0,'rgba('+rgb+','+ga+')');
+      g.addColorStop(1,'rgba('+rgb+',0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,glowR,0,7); ctx.fill();
+      ctx.fillStyle='rgba('+rgb+','+alpha+')';
+      ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill();
+      if (n.type==='convex' || isFocus || (n.type==='engineer'&&inPath)){
+        ctx.strokeStyle='rgba(255,255,255,'+((isFocus?0.9:0.55)*alpha)+')';
+        ctx.lineWidth=isFocus?2:1;
+        ctx.beginPath(); ctx.arc(x,y,r+(isFocus?5:3),0,7); ctx.stroke();
+      }
+      const showLabel = sel ? inPath : (n.type==='convex'||n.type==='pain'||isHov);
+      if (showLabel && alpha>0.25){
+        const big = sel && inPath;
+        const fs = n.type==='convex' ? (big?17:13) : (big?14:11);
+        ctx.font='600 '+fs+"px 'JetBrains Mono', monospace";
+        const maxc = big?34:24;
+        const raw = n.type==='convex' ? 'Convex fit' : n.label;
+        const txt = raw.length>maxc ? raw.slice(0,maxc-1)+'…' : raw;
+        let align, ox, oy;
+        if (n.layer>=3){ align='left'; ox=r+11; oy=fs*0.36; }
+        else { align='center'; ox=0; oy=-r-11; }
+        ctx.textAlign=align;
+        const tw=ctx.measureText(txt).width;
+        let bxp=x+ox; if(align==='center') bxp-=tw/2;
+        ctx.fillStyle='rgba(6,8,12,0.9)';
+        ctx.fillRect(bxp-5, y+oy-fs+1, tw+10, fs+6);
+        ctx.fillStyle = isFocus?'#ffffff':(big?'#dfe7ee':'rgba(200,210,222,0.9)');
+        ctx.fillText(txt, x+ox, y+oy);
+      }
+    }
+
+    // tooltip (default view only)
+    if (hov && !sel){
+      const n=this.nodeById[hov];
+      const x=this.dispX(n), y=this.dispY(n);
+      let lines=[];
+      if(n.type==='engineer'){ const l=this.leads.find(l=>l.id===n.id); lines=['@'+l.handle+'  ·  intent '+l.score, l.role]; }
+      else if(n.type==='evidence'){ lines=[n.evType+' · '+n.repo, n.title]; }
+      else if(n.type==='pattern'){ lines=['code pattern', n.label]; }
+      else if(n.type==='pain'){ lines=['pain point', n.full]; }
+      else if(n.type==='convex'){ lines=['Convex fit', 'reactive backend target']; }
+      ctx.font="500 11px 'JetBrains Mono', monospace";
+      let w=0; lines.forEach(l=>w=Math.max(w,ctx.measureText(l).width));
+      const pad=9, lh=17, bw=w+pad*2, bh=lines.length*lh+pad;
+      let tx=x+16, ty=y-bh-6;
+      if(tx+bw>W) tx=x-bw-16; if(ty<4) ty=y+16;
+      ctx.fillStyle='rgba(10,13,19,0.96)'; ctx.strokeStyle='rgba(70,230,176,0.4)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.roundRect(tx,ty,bw,bh,6); ctx.fill(); ctx.stroke();
+      lines.forEach((l,i)=>{ ctx.fillStyle = i===0?'#46e6b0':'#aeb8c4'; ctx.textAlign='left'; ctx.fillText(l,tx+pad,ty+pad+i*lh+2); });
+    }
+  }
+
+  hex2rgb(h){ const n=parseInt(h.slice(1),16); return ((n>>16)&255)+','+((n>>8)&255)+','+(n&255); }
+
+  fmtDate(ts){ const d=new Date(ts); return d.toLocaleString('en',{month:'short'})+" '"+String(d.getFullYear()).slice(2); }
+  fmtDateFull(ts){ const d=new Date(ts); return d.toLocaleString('en',{month:'short',day:'numeric'})+", '"+String(d.getFullYear()).slice(2); }
+
+  badgeStyle(t){
+    const c = t==='PR'?'#46e6b0':(t==='issue'?'#ff7a45':'#aab4c0');
+    const bg = t==='PR'?'rgba(70,230,176,0.14)':(t==='issue'?'rgba(255,122,69,0.14)':'rgba(154,166,180,0.14)');
+    return 'font-size:9px; font-weight:700; letter-spacing:0.5px; padding:3px 6px; border-radius:4px; color:'+c+'; background:'+bg+'; text-transform:uppercase;';
+  }
+  chipStyle(color){ return 'font-size:12px; padding:6px 11px; border-radius:5px; color:'+color+'; background:'+color.replace('#','rgba(')+''; }
+
+  renderVals() {
+    const st = this.state;
+    const sel = this.leads.find(l=>l.id===st.selectedId) || null;
+    const focusNode = (sel && st.focusNodeId) ? this.nodeById[st.focusNodeId] : null;
+    const active = st.activePains;
+
+    const painList = this.PAINS.map(p=>{
+      const on = active.includes(p.id);
+      return { short:p.short, onClick: ()=>this.togglePain(p.id),
+        style: 'font-size:12px; cursor:pointer; padding:7px 11px; border-radius:5px; user-select:none; transition:all .12s; border:1px solid '+(on?'rgba(255,122,69,0.55)':'rgba(255,255,255,0.10)')+'; color:'+(on?'#ff9d6e':'#8a96a4')+'; background:'+(on?'rgba(255,122,69,0.12)':'transparent')+';' };
+    });
+
+    let leads = this.leads.filter(l=>l.score>=st.minScore && (active.length===0 || l.painIds.some(p=>active.includes(p))));
+    leads = leads.slice().sort((a,b)=>b.score-a.score);
+    const leadVals = leads.map(l=>{
+      const isSel = l.id===st.selectedId;
+      return { handle:l.handle, role:l.role, score:l.score,
+        onClick: ()=>this.selectLead(l.id),
+        rowStyle: 'cursor:pointer; padding:11px 13px; border-radius:7px; border:1px solid '+(isSel?'rgba(70,230,176,0.5)':'rgba(255,255,255,0.07)')+'; background:'+(isSel?'rgba(70,230,176,0.08)':'rgba(255,255,255,0.015)')+'; transition:all .12s;',
+        scoreStyle: 'font-size:16px; font-weight:700; color:'+(l.score>=88?'#46e6b0':(l.score>=80?'#c08bff':'#9aa6b4'))+';',
+        barStyle: 'height:100%; width:'+l.score+'%; border-radius:4px; background:linear-gradient(90deg,'+(l.score>=88?'#46e6b0':(l.score>=80?'#c08bff':'#7a8696'))+',rgba(70,230,176,0.3));' };
+    });
+
+    // OVERVIEW
+    let ov=null;
+    if (sel && !focusNode){
+      const C=2*Math.PI*37;
+      const dash=(sel.score/100*C).toFixed(1)+' '+(C).toFixed(1);
+      const bdLabels={Pain:'Pain match',Evidence:'Evidence strength',Recency:'Recency',Influence:'Repo influence',Stack:'Stack fit'};
+      ov={ handle:sel.handle, name:sel.name, role:sel.role, loc:sel.loc, score:sel.score, why:sel.why, angle:sel.angle, ringDash:dash,
+        clearSel: ()=>this.clearSelection(),
+        matchedPains: sel.matchedPains.map(p=>({label:p.label, onClick: ()=>this.setState({focusNodeId:p.id, timelineFocus:null})})),
+        breakdown: Object.keys(sel.bd).map(k=>({label:bdLabels[k]||k, value:sel.bd[k],
+          barStyle:'height:100%; width:'+sel.bd[k]+'%; border-radius:5px; background:linear-gradient(90deg,#46e6b0,#7fffcf); box-shadow:0 0 6px rgba(70,230,176,0.4);'})) };
+    }
+
+    // STEP
+    let step=null;
+    if (sel && focusNode){
+      const chip = (label,color)=>({ label, style:'font-size:12px; padding:7px 11px; border-radius:5px; color:'+color+'; background:'+(color==='#ff7a45'?'rgba(255,122,69,0.12)':'rgba(70,230,176,0.12)')+'; border:1px solid '+(color==='#ff7a45'?'rgba(255,122,69,0.3)':'rgba(70,230,176,0.3)')+';' });
+      const kindStyle=(c)=>'font-size:10px; font-weight:700; letter-spacing:1.5px; padding:4px 8px; border-radius:4px; color:'+c+'; background:'+(c==='#c08bff'?'rgba(192,139,255,0.14)':c==='#ff7a45'?'rgba(255,122,69,0.14)':c==='#46e6b0'?'rgba(70,230,176,0.14)':'rgba(154,166,180,0.14)')+';';
+      const back = ()=>this.setState({focusNodeId:null, timelineFocus:null});
+      const t = focusNode.type;
+      if (t==='evidence'){
+        const cp=this.cpById[focusNode.cp];
+        const pains=cp.pains.map(pid=>this.painById[pid].short).join(', ');
+        step={ handle:sel.handle, back, kind:'EVIDENCE', kindStyle:kindStyle('#aab4c0'),
+          badge:focusNode.evType, badgeStyle:this.badgeStyle(focusNode.evType),
+          sub:focusNode.repo+' · '+this.fmtDateFull(focusNode.date),
+          title:focusNode.title,
+          bodyLabel:'WHAT IT SIGNALS',
+          body:'This '+focusNode.evType.toLowerCase()+' is direct evidence of the “'+cp.label+'” pattern — a strong signal for '+pains+'.',
+          chipsLabel:'SIGNALS PAIN', chips:cp.pains.map(pid=>chip(this.painById[pid].short,'#ff7a45')),
+          link:true, linkHref:'https://github.com/'+sel.handle+'/'+sel.proj,
+          nextHint:'Next in the trace → code pattern: '+cp.label };
+      } else if (t==='pattern'){
+        const cp=this.cpById[focusNode.id];
+        const primary=this.painById[cp.pains[0]];
+        step={ handle:sel.handle, back, kind:'CODE PATTERN', kindStyle:kindStyle('#c08bff'),
+          badge:null, sub:'observed in '+sel.proj,
+          title:cp.label,
+          bodyLabel:'WHY IT MATTERS',
+          body:primary.fit,
+          chipsLabel:'IMPLIES PAIN', chips:cp.pains.map(pid=>chip(this.painById[pid].short,'#ff7a45')),
+          link:false,
+          nextHint:'Next in the trace → pain point: '+primary.short };
+      } else if (t==='pain'){
+        const p=this.painById[focusNode.id];
+        step={ handle:sel.handle, back, kind:'PAIN POINT', kindStyle:kindStyle('#ff7a45'),
+          badge:null, sub:'mapped to Convex',
+          title:p.label,
+          bodyLabel:'CONVEX FIT',
+          body:p.fit,
+          chipsLabel:'RESOLVED BY', chips:[chip('Convex reactive backend','#46e6b0')],
+          link:false,
+          nextHint:'This pain resolves to Convex fit — the end of the reasoning path.' };
+      } else { // convex
+        step={ handle:sel.handle, back, kind:'CONVEX FIT', kindStyle:kindStyle('#46e6b0'),
+          badge:null, sub:'intent score '+sel.score,
+          title:'Strong Convex fit for @'+sel.handle,
+          bodyLabel:'OUTREACH ANGLE',
+          body:sel.angle,
+          chipsLabel:'MATCHED PAINS', chips:sel.matchedPains.map(p=>chip(p.short,'#ff7a45')),
+          link:false,
+          nextHint:sel.matchedPains.length+' pain signals converge on Convex for this lead.' };
+      }
+    }
+
+    // TIMELINE
+    const tlSource = sel ? sel.evidence.map(e=>({...e, who:sel.handle})) :
+      this.leads.flatMap(l=>l.evidence.map(e=>({...e, who:l.handle})));
+    const dates=tlSource.map(e=>e.date);
+    const minD=Math.min(...dates), maxD=Math.max(...dates), spanD=(maxD-minD)||1;
+    const tlSorted=tlSource.slice().sort((a,b)=>a.date-b.date);
+    const timeline=tlSorted.map((e,i)=>{
+      const pct=((e.date-minD)/spanD)*(sel?80:94)+(sel?10:3);
+      const up = i%2===0;
+      const focused = st.timelineFocus===e.id;
+      const col = e.type==='PR'?'#46e6b0':(e.type==='issue'?'#ff7a45':'#aab4c0');
+      const showCard = !!sel;
+      return { type:e.type, title:e.title.length>56?e.title.slice(0,55)+'…':e.title, who:e.who, dateLabel:this.fmtDateFull(e.date),
+        tip:'['+e.type+'] @'+e.who+' · '+e.title+' · '+this.fmtDateFull(e.date),
+        badgeStyle:this.badgeStyle(e.type),
+        onClick: ()=>{ const owner=e.id.split('_e')[0]; this.selectLead(owner); this.setState({focusNodeId:e.id, timelineFocus:e.id}); },
+        wrapStyle:'position:absolute; left:'+pct+'%; top:0; bottom:0; transform:translateX(-50%); cursor:pointer; display:flex; flex-direction:column; justify-content:'+(up?'flex-start':'flex-end')+'; align-items:center;',
+        dotStyle:'position:absolute; top:50%; transform:translate(-50%,-50%); left:50%; width:'+(focused?'15px':(showCard?'11px':'9px'))+'; height:'+(focused?'15px':(showCard?'11px':'9px'))+'; border-radius:50%; background:'+col+'; box-shadow:0 0 '+(focused?'14px':'7px')+' '+col+'; border:1px solid rgba(6,8,12,0.7); z-index:2;',
+        cardStyle:(showCard?'':'display:none; ')+'background:'+(focused?'rgba(70,230,176,0.10)':'rgba(13,17,24,0.92)')+'; border:1px solid '+(focused?'rgba(70,230,176,0.5)':'rgba(255,255,255,0.09)')+'; border-radius:6px; padding:7px 9px; '+(up?'margin-bottom:16px;':'margin-top:16px;')+' min-width:140px;' };
+    });
+
+    return {
+      typed: st.typed,
+      nodeCount: this.nodes.length,
+      statusLabel: st.scanning ? 'tracing…' : 'trace complete',
+      scanBar: Math.round((st.scanning?st.scanPct:1)*100)+'%',
+      runTrace: ()=>this.runTrace(),
+      painList, leads:leadVals, resultCount: leads.length,
+      minScore: st.minScore, setMinScore: (e)=>this.setState({minScore:+e.target.value}),
+      clearFilters: ()=>this.clearFilters(),
+      filterHint: active.length? 'clear ('+active.length+')':'',
+      canvasRef: this.canvasRef,
+      rightNone: !sel, rightOverview: !!ov, rightStep: !!step, ov, step,
+      graphTitle: sel? ('TRACE · @'+sel.handle) : 'SEARCH TRACE · 5-LAYER REASONING GRAPH',
+      centerHint: sel? 'click any node in the trace to read its reasoning →' : 'click an engineer node to trace its reasoning · click a pain to filter',
+      timeline, timelineTitle: sel? '@'+sel.handle+' · '+sel.proj : 'all leads — click an event to open its lead',
+      timelineRange: tlSorted.length+' events',
+      tlStart: this.fmtDate(minD), tlEnd: this.fmtDate(maxD),
+    };
+  }
+}
+</script>
+</body>
+</html>
