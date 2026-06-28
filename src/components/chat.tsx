@@ -4,10 +4,13 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowUpIcon,
+  CheckIcon,
   ChevronDownIcon,
   DatabaseZapIcon,
+  EllipsisIcon,
   GlobeIcon,
   MessageSquareIcon,
+  PencilIcon,
   PlusIcon,
   RotateCwIcon,
   SearchIcon,
@@ -33,6 +36,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Empty,
   EmptyDescription,
@@ -111,6 +121,12 @@ type ChatMessage = {
 };
 
 type ChatStatus = "idle" | "streaming" | "error";
+
+type PainPointDraft = {
+  id: string;
+  title: string;
+  description: string;
+};
 
 type ResearchStreamHandlers = {
   onActivity: (activity: ResearchActivity) => void;
@@ -1079,18 +1095,61 @@ function PainPointsPanel({
   onFindCustomers: () => void;
 }) {
   const [openIds, setOpenIds] = React.useState<Set<string>>(() => new Set());
+  const [editingDraft, setEditingDraft] =
+    React.useState<PainPointDraft | null>(null);
 
   function addPainPoint() {
     const nextPainPoint = createPainPoint();
 
     onPainPointsChange((current) => [...current, nextPainPoint]);
     setOpenIds((current) => new Set(current).add(nextPainPoint.id));
+    startEditingPainPoint(nextPainPoint);
   }
 
   function removePainPoint(painPointId: string) {
     onPainPointsChange((current) =>
       current.filter((painPoint) => painPoint.id !== painPointId)
     );
+    setEditingDraft((current) => (current?.id === painPointId ? null : current));
+  }
+
+  function startEditingPainPoint(painPoint: PainPoint) {
+    setEditingDraft({
+      id: painPoint.id,
+      title: painPoint.title,
+      description: painPoint.description,
+    });
+  }
+
+  function updatePainPointDraft(
+    patch: Partial<Omit<PainPointDraft, "id">>
+  ) {
+    setEditingDraft((current) => (current ? { ...current, ...patch } : current));
+  }
+
+  function savePainPointDraft() {
+    if (!editingDraft) {
+      return;
+    }
+
+    const draft = editingDraft;
+
+    onPainPointsChange((current) =>
+      current.map((painPoint) =>
+        painPoint.id === draft.id
+          ? {
+              ...painPoint,
+              title: draft.title,
+              description: draft.description,
+            }
+          : painPoint
+      )
+    );
+    setEditingDraft(null);
+  }
+
+  function cancelPainPointDraft() {
+    setEditingDraft(null);
   }
 
   function addSubpoint(painPointId: string) {
@@ -1162,6 +1221,8 @@ function PainPointsPanel({
           <div className="flex flex-col gap-3 p-4">
             {painPoints.map((painPoint) => {
               const isOpen = openIds.has(painPoint.id);
+              const draft =
+                editingDraft?.id === painPoint.id ? editingDraft : null;
 
               return (
                 <Collapsible
@@ -1181,29 +1242,22 @@ function PainPointsPanel({
                     })
                   }
                 >
-                  <div className="group relative rounded-lg border bg-card">
-                    <div className="min-w-0 p-2">
-                      <PainPointTrigger painPoint={painPoint} isOpen={isOpen} />
+                  <div className="relative rounded-lg border bg-card">
+                    <div className="group/trigger relative min-w-0 p-2">
+                      <PainPointTrigger
+                        painPoint={painPoint}
+                        isOpen={isOpen}
+                        editingDraft={draft}
+                        onDraftChange={updatePainPointDraft}
+                      />
+                      <PainPointActions
+                        isEditing={Boolean(draft)}
+                        onEdit={() => startEditingPainPoint(painPoint)}
+                        onSave={savePainPointDraft}
+                        onCancel={cancelPainPointDraft}
+                        onDelete={() => removePainPoint(painPoint.id)}
+                      />
                     </div>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Remove pain point"
-                            className="pointer-events-none absolute top-2 right-2 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
-                            onClick={() => removePainPoint(painPoint.id)}
-                          />
-                        }
-                      >
-                        <Trash2Icon />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Remove</p>
-                      </TooltipContent>
-                    </Tooltip>
                     <CollapsibleContent>
                       <div className="flex flex-col gap-4 border-t p-3">
                         <div className="flex items-center justify-between gap-3">
@@ -1257,27 +1311,70 @@ function PainPointsPanel({
 function PainPointTrigger({
   painPoint,
   isOpen,
+  editingDraft,
+  onDraftChange,
 }: {
   painPoint: PainPoint;
   isOpen: boolean;
+  editingDraft: PainPointDraft | null;
+  onDraftChange: (patch: Partial<Omit<PainPointDraft, "id">>) => void;
 }) {
+  const chevron = (
+    <ChevronDownIcon
+      aria-hidden="true"
+      className={cn(
+        "mt-0.5 size-4 shrink-0 transition-transform",
+        isOpen ? "rotate-0" : "-rotate-90"
+      )}
+    />
+  );
+
+  if (editingDraft) {
+    return (
+      <div className="flex w-full min-w-0 items-start gap-2 rounded-md p-2 pr-16 text-left hover:bg-muted/50">
+        <CollapsibleTrigger
+          render={
+            <button
+              type="button"
+              className="shrink-0 rounded-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+              aria-label={isOpen ? "Collapse pain point" : "Expand pain point"}
+            />
+          }
+        >
+          {chevron}
+        </CollapsibleTrigger>
+        <span className="min-w-0 flex-1">
+          <Input
+            aria-label="Pain point title"
+            className="h-auto min-w-0 border-0 bg-transparent p-0 text-sm font-medium text-foreground shadow-none focus-visible:ring-0"
+            value={editingDraft.title}
+            onChange={(event) => onDraftChange({ title: event.target.value })}
+          />
+          <Textarea
+            aria-label="Pain point description"
+            className="mt-1 min-h-0 resize-none border-0 bg-transparent p-0 text-xs leading-5 text-muted-foreground shadow-none focus-visible:ring-0"
+            rows={2}
+            value={editingDraft.description}
+            onChange={(event) =>
+              onDraftChange({ description: event.target.value })
+            }
+          />
+        </span>
+      </div>
+    );
+  }
+
   return (
     <CollapsibleTrigger
       render={
         <button
           type="button"
-          className="flex w-full min-w-0 items-start gap-2 rounded-md p-2 text-left hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="flex w-full min-w-0 items-start gap-2 rounded-md p-2 pr-10 text-left hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
           aria-label={isOpen ? "Collapse pain point" : "Expand pain point"}
         />
       }
     >
-      <ChevronDownIcon
-        aria-hidden="true"
-        className={cn(
-          "mt-0.5 size-4 shrink-0 transition-transform",
-          isOpen ? "rotate-0" : "-rotate-90"
-        )}
-      />
+      {chevron}
       <span className="min-w-0">
         <span className="block truncate text-sm font-medium text-foreground">
           {painPoint.title}
@@ -1287,6 +1384,77 @@ function PainPointTrigger({
         </span>
       </span>
     </CollapsibleTrigger>
+  );
+}
+
+function PainPointActions({
+  isEditing,
+  onEdit,
+  onSave,
+  onCancel,
+  onDelete,
+}: {
+  isEditing: boolean;
+  onEdit: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onDelete: () => void;
+}) {
+  if (isEditing) {
+    return (
+      <div className="absolute top-4 right-4 flex gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-xs"
+          aria-label="Save pain point changes"
+          className="bg-background shadow-sm"
+          onClick={onSave}
+        >
+          <CheckIcon />
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-xs"
+          aria-label="Cancel pain point changes"
+          className="bg-background shadow-sm"
+          onClick={onCancel}
+        >
+          <XIcon />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label="Open pain point actions"
+            className="absolute top-4 right-4 bg-background opacity-0 shadow-sm transition-opacity group-hover/trigger:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
+          />
+        }
+      >
+        <EllipsisIcon />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={6} className="w-32">
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={onEdit}>
+            <PencilIcon />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onClick={onDelete}>
+            <Trash2Icon />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

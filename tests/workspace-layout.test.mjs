@@ -27,6 +27,16 @@ test("pain points panel removes company summary and uses a compact trigger", () 
   assert.ok(painPointsPanel, "PainPointsPanel component should exist");
   assert.doesNotMatch(painPointsPanel, /research\.summary|research\.customers/);
   assert.match(source, /function PainPointTrigger/);
+  assert.match(painPointsPanel, /group\/trigger relative min-w-0 p-2/);
+  assert.match(painPointsPanel, /group-hover\/trigger:opacity-100/);
+  assert.match(painPointsPanel, /Open pain point actions/);
+  assert.match(painPointsPanel, /DropdownMenuItem onClick=\{onEdit\}/);
+  assert.match(painPointsPanel, /Save pain point changes/);
+  assert.match(painPointsPanel, /Cancel pain point changes/);
+  assert.match(painPointsPanel, /editingDraft/);
+  assert.match(painPointsPanel, /aria-label="Pain point title"/);
+  assert.match(painPointsPanel, /aria-label="Pain point description"/);
+  assert.doesNotMatch(painPointsPanel, /group-hover:opacity-100/);
 });
 
 test("code examples render as borderless text rows without icon affordance", () => {
