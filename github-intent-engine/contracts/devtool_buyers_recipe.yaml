@@ -1,0 +1,83 @@
+id: devtool_buyer_leads
+label: Multi-buyer devtool lead discovery
+target_product: GitHub Intent Engine
+target_entity: founder_or_engineer
+time_window_days: 90
+
+repo_categories:
+  - developer tools
+  - AI coding agent
+  - agent collaboration
+  - developer productivity
+  - backend-as-a-service
+  - reactive database
+  - real-time sync
+  - real-time analytics
+  - product analytics
+  - event pipeline
+  - growth engineering
+  - AI SDK
+  - LLM platform
+  - model evaluation
+
+topic_terms:
+  - cache invalidation
+  - reactive database
+  - WebSocket
+  - websocket
+  - realtime
+  - real-time
+  - subscriptions
+  - Firebase alternative
+  - Supabase alternative
+  - full-stack backend
+  - Claude
+  - Codex
+  - context limits
+  - agent collaboration
+  - AI coding agents
+  - monorepo context
+  - prompt handoff
+  - code review agents
+  - real-time analytics
+  - event pipelines
+  - product analytics
+  - attribution
+  - activation funnels
+  - reverse ETL
+  - growth experiments
+  - OpenAI API
+  - agents
+  - tool calling
+  - evals
+  - LLM latency
+  - model routing
+  - structured outputs
+  - RAG
+
+strong_stacks:
+  - TypeScript
+  - React
+  - Next.js
+  - Node.js
+  - Postgres
+  - WebSocket
+  - OpenAI
+  - Claude
+  - Codex
+  - MCP
+  - PostHog
+  - ClickHouse
+  - Kafka
+  - LangChain
+  - Vercel AI SDK
+
+negative_terms:
+  - tutorial
+  - sample
+  - example
+  - demo
+  - toy
+  - awesome-list
+  - course
+  - bootcamp

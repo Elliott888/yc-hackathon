@@ -1,0 +1,32 @@
+{
+  "name": "github-intent-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "harvest": "tsx track-a-harvester/src/run.ts",
+    "validate:raw": "tsx track-a-harvester/src/validate-raw.ts",
+    "build-intelligence": "tsx track-b-intelligence/src/cli.ts build",
+    "import-track1": "tsx track-b-intelligence/src/cli.ts import-track1",
+    "search": "tsx track-b-intelligence/src/cli.ts search",
+    "eval": "tsx track-b-intelligence/src/cli.ts eval",
+    "serve": "tsx track-b-intelligence/src/server.ts",
+    "test": "vitest run track-a-harvester/test",
+    "test:track-b": "vitest run track-b-intelligence/test",
+    "test:e2e": "vitest run track-b-intelligence/test/track-b-e2e.test.ts",
+    "typecheck": "npm run typecheck:track-a && npm run typecheck:track-b",
+    "typecheck:track-a": "tsc --noEmit -p tsconfig.track-a.json",
+    "typecheck:track-b": "tsc --noEmit -p tsconfig.track-b.json"
+  },
+  "dependencies": {
+    "@octokit/rest": "^21.1.1",
+    "commander": "^12.1.0",
+    "p-limit": "^6.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

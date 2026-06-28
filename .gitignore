@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+!**/.env.example
 
 # vercel
 .vercel
@@ -39,3 +41,29 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# nested hackathon workspaces
+**/node_modules/
+**/.playwright-cli/
+**/.next/
+**/dist/
+**/build/
+**/coverage/
+
+# generated harvest, embedding, and model outputs
+github-intent-engine/data/*
+!github-intent-engine/data/eval/
+github-intent-engine/data/eval/*
+!github-intent-engine/data/eval/.gitkeep
+!github-intent-engine/data/processed/
+github-intent-engine/data/processed/*
+!github-intent-engine/data/processed/.gitkeep
+
+neural-github-intent/data/*
+neural-github-intent/data-live-smoke/*
+neural-github-intent/embeddings/*
+!neural-github-intent/embeddings/.gitkeep
+neural-github-intent/evals/*
+!neural-github-intent/evals/.gitkeep
+neural-github-intent/model-experiments/*
+!neural-github-intent/model-experiments/.gitkeep

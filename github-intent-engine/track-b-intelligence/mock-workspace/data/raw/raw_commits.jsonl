@@ -1,0 +1,1 @@
+{"sha":"abc123","repo":"electric-sql/electric","author_login":"jane-dev","message":"Fix websocket reconnect behavior for subscriptions","committed_at":"2026-06-09T12:00:00Z","changed_files":["packages/sync/src/socket.ts"],"url":"https://github.com/electric-sql/electric/commit/abc123"}

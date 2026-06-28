@@ -1,0 +1,26 @@
+# Convex / full-stack backend
+supabase/supabase
+appwrite/appwrite
+electric-sql/electric
+rocicorp/replicache
+trpc/trpc
+
+# Lore / AI coding collaboration
+continuedev/continue
+cline/cline
+sst/opencode
+coder/code-server
+
+# Lopus / real-time growth analytics
+PostHog/posthog
+rudderlabs/rudder-server
+snowplow/snowplow
+growthbook/growthbook
+umami-software/umami
+
+# OpenAI / AI developer platform
+openai/openai-node
+openai/openai-python
+openai/openai-cookbook
+vercel/ai
+langchain-ai/langchain

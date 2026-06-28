@@ -1,0 +1,191 @@
+{
+  "now": "2026-06-28T12:00:00.000Z",
+  "repos": [
+    {
+      "full_name": "electric-sql/electric",
+      "owner_login": "electric-sql",
+      "owner_type": "Organization",
+      "description": "Realtime sync engine for local-first apps using Postgres replication and live queries.",
+      "topics": ["sync", "postgres", "local-first", "realtime", "typescript"],
+      "language": "TypeScript",
+      "stars": 12300,
+      "forks": 420,
+      "is_fork": false,
+      "is_archived": false,
+      "pushed_at": "2026-06-25T09:00:00.000Z",
+      "html_url": "https://github.com/electric-sql/electric",
+      "readme": "Electric syncs Postgres into local apps with live queries, replication, conflict handling, and reactive data flows."
+    },
+    {
+      "full_name": "tailwindlabs/tailwindcss",
+      "owner_login": "tailwindlabs",
+      "owner_type": "Organization",
+      "description": "A utility-first CSS framework.",
+      "topics": ["css", "design", "styles"],
+      "language": "JavaScript",
+      "stars": 88000,
+      "forks": 4500,
+      "is_fork": false,
+      "is_archived": false,
+      "pushed_at": "2026-06-26T09:00:00.000Z",
+      "html_url": "https://github.com/tailwindlabs/tailwindcss",
+      "readme": "Rapidly build modern websites without leaving your HTML."
+    }
+  ],
+  "pull_requests": [
+    {
+      "repo": "electric-sql/electric",
+      "number": 101,
+      "author_login": "jane-sync",
+      "title": "Improve live query invalidation for Postgres replication",
+      "body": "Fixes stale subscription state when replication lag catches up after reconnect.",
+      "state": "closed",
+      "created_at": "2026-06-12T10:00:00.000Z",
+      "updated_at": "2026-06-20T10:00:00.000Z",
+      "merged_at": "2026-06-20T10:00:00.000Z",
+      "changed_files": ["packages/sync/src/live-query.ts", "packages/client/src/subscriptions.ts"],
+      "html_url": "https://github.com/electric-sql/electric/pull/101"
+    },
+    {
+      "repo": "electric-sql/electric",
+      "number": 102,
+      "author_login": "docs-bot",
+      "title": "Docs typo in README",
+      "body": "Fix readme typo in the quickstart example.",
+      "state": "closed",
+      "created_at": "2026-06-18T10:00:00.000Z",
+      "updated_at": "2026-06-18T10:00:00.000Z",
+      "merged_at": "2026-06-18T10:00:00.000Z",
+      "changed_files": ["README.md"],
+      "html_url": "https://github.com/electric-sql/electric/pull/102"
+    },
+    {
+      "repo": "tailwindlabs/tailwindcss",
+      "number": 301,
+      "author_login": "ui-only",
+      "title": "Add color utility examples",
+      "body": "Documents new CSS examples.",
+      "state": "closed",
+      "created_at": "2026-06-19T10:00:00.000Z",
+      "updated_at": "2026-06-20T10:00:00.000Z",
+      "merged_at": "2026-06-20T10:00:00.000Z",
+      "changed_files": ["docs/colors.md"],
+      "html_url": "https://github.com/tailwindlabs/tailwindcss/pull/301"
+    },
+    {
+      "repo": "electric-sql/electric",
+      "number": 50,
+      "author_login": "old-sync",
+      "title": "Prototype sync engine",
+      "body": "Old replication experiment.",
+      "state": "closed",
+      "created_at": "2025-12-01T10:00:00.000Z",
+      "updated_at": "2025-12-01T10:00:00.000Z",
+      "merged_at": "2025-12-01T10:00:00.000Z",
+      "changed_files": ["prototype/sync.ts"],
+      "html_url": "https://github.com/electric-sql/electric/pull/50"
+    }
+  ],
+  "issues": [
+    {
+      "repo": "electric-sql/electric",
+      "number": 201,
+      "author_login": "max-backend",
+      "title": "WebSocket subscription state goes stale after conflict resolution",
+      "body": "When offline writes reconnect, the live query cache sometimes misses invalidation.",
+      "state": "open",
+      "created_at": "2026-06-15T08:00:00.000Z",
+      "updated_at": "2026-06-21T08:00:00.000Z",
+      "html_url": "https://github.com/electric-sql/electric/issues/201"
+    }
+  ],
+  "comments": [
+    {
+      "repo": "electric-sql/electric",
+      "issue_number": 201,
+      "author_login": "jane-sync",
+      "body": "The replication stream should force live query invalidation after conflict resolution completes.",
+      "created_at": "2026-06-21T09:00:00.000Z",
+      "updated_at": "2026-06-21T09:00:00.000Z",
+      "html_url": "https://github.com/electric-sql/electric/issues/201#issuecomment-1"
+    }
+  ],
+  "commits": [
+    {
+      "repo": "electric-sql/electric",
+      "sha": "abc123",
+      "author_login": "jane-sync",
+      "message": "Handle websocket reconnects for live query replication",
+      "committed_at": "2026-06-22T10:00:00.000Z",
+      "changed_files": ["packages/sync/src/reconnect.ts"],
+      "html_url": "https://github.com/electric-sql/electric/commit/abc123"
+    }
+  ],
+  "users": [
+    {
+      "login": "jane-sync",
+      "type": "User",
+      "name": "Jane Sync",
+      "company": "Realtime Systems",
+      "location": "San Francisco",
+      "blog": "https://janesync.dev",
+      "email": null,
+      "bio": "TypeScript engineer working on local-first sync and reactive database systems.",
+      "public_repos": 42,
+      "followers": 180,
+      "html_url": "https://github.com/jane-sync"
+    },
+    {
+      "login": "max-backend",
+      "type": "User",
+      "name": "Max Backend",
+      "company": "Backend Labs",
+      "location": "New York",
+      "blog": "",
+      "email": null,
+      "bio": "Backend engineer building serverless database workflows.",
+      "public_repos": 18,
+      "followers": 75,
+      "html_url": "https://github.com/max-backend"
+    },
+    {
+      "login": "docs-bot",
+      "type": "Bot",
+      "name": "Docs Bot",
+      "company": null,
+      "location": null,
+      "blog": "",
+      "email": null,
+      "bio": "Automated documentation updates.",
+      "public_repos": 1,
+      "followers": 0,
+      "html_url": "https://github.com/apps/docs-bot"
+    },
+    {
+      "login": "ui-only",
+      "type": "User",
+      "name": "UI Only",
+      "company": null,
+      "location": null,
+      "blog": "",
+      "email": null,
+      "bio": "CSS docs contributor.",
+      "public_repos": 3,
+      "followers": 2,
+      "html_url": "https://github.com/ui-only"
+    },
+    {
+      "login": "old-sync",
+      "type": "User",
+      "name": "Old Sync",
+      "company": null,
+      "location": null,
+      "blog": "",
+      "email": null,
+      "bio": "Old experiments.",
+      "public_repos": 3,
+      "followers": 2,
+      "html_url": "https://github.com/old-sync"
+    }
+  ]
+}

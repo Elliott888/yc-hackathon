@@ -1,0 +1,2 @@
+{"repo":"docs-only/reactive-demo","categories":["real-time sync","reactive database"],"category_scores":{"real-time sync":1,"reactive database":1},"negative_flags":["tutorial","sample","example","demo","toy"]}
+{"repo":"electric-sql/electric","categories":["real-time sync","local-first","database sync","offline-first"],"category_scores":{"real-time sync":2,"local-first":2,"offline-first":1,"database sync":4},"negative_flags":[]}

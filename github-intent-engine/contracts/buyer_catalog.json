@@ -1,0 +1,112 @@
+[
+  {
+    "id": "orange-slice",
+    "name": "Orange Slice",
+    "one_liner": "Agentic sales agents in spreadsheets.",
+    "buyer_type": "gtm_tool",
+    "github_fit": "medium",
+    "target_customers": ["devtool founders", "sales teams", "founder-led sales teams"],
+    "pain_signals": ["manual lead research", "spreadsheet prospecting", "CRM enrichment", "outbound personalization"],
+    "stack_signals": ["Airtable", "Google Sheets", "HubSpot", "Salesforce", "Clay"],
+    "seed_repos": ["clay-run/clay", "twentyhq/twenty", "dubinc/dub"]
+  },
+  {
+    "id": "rev1",
+    "name": "Rev1",
+    "one_liner": "AI for mechanical engineers.",
+    "buyer_type": "technical_vertical",
+    "github_fit": "medium",
+    "target_customers": ["mechanical engineers", "hardware startups", "simulation engineers"],
+    "pain_signals": ["CAD automation", "mechanical simulation", "finite element analysis", "design review", "manufacturing drawings"],
+    "stack_signals": ["FreeCAD", "OpenSCAD", "Onshape", "Blender", "Python"],
+    "seed_repos": ["FreeCAD/FreeCAD", "CadQuery/cadquery", "openscad/openscad"]
+  },
+  {
+    "id": "convex",
+    "name": "Convex",
+    "one_liner": "Database for coding agents.",
+    "buyer_type": "devtool",
+    "github_fit": "high",
+    "target_customers": ["founders", "backend engineers", "AI app builders"],
+    "pain_signals": ["cache invalidation", "reactive database", "WebSocket infrastructure", "WebSocket adapter", "clientSubscriptions", "subscription task", "replication metadata caches", "Firebase alternatives", "Supabase alternatives", "simpler full-stack backend"],
+    "stack_signals": ["TypeScript", "React", "Next.js", "Node.js", "Postgres", "WebSocket"],
+    "seed_repos": ["supabase/supabase", "appwrite/appwrite", "electric-sql/electric", "rocicorp/replicache", "trpc/trpc"]
+  },
+  {
+    "id": "lore",
+    "name": "Lore",
+    "one_liner": "Collaboration tools for teams that max out Claude, Codex, and Cowork.",
+    "buyer_type": "devtool",
+    "github_fit": "high",
+    "target_customers": ["AI engineering teams", "agentic coding teams", "developer productivity teams"],
+    "pain_signals": ["Claude context limits", "Codex context limits", "Claude", "Codex", "AI coding agents", "agent collaboration", "agent runs", "agents losing focus", "monorepo context", "prompt handoff", "code review agents", "MCP server"],
+    "stack_signals": ["Claude", "Codex", "Cursor", "OpenAI", "MCP", "TypeScript"],
+    "seed_repos": ["continuedev/continue", "cline/cline", "sst/opencode", "coder/code-server"]
+  },
+  {
+    "id": "verdex",
+    "name": "Verdex",
+    "one_liner": "Satellite imagery verification for insurance.",
+    "buyer_type": "technical_vertical",
+    "github_fit": "medium",
+    "target_customers": ["insurance carriers", "claims teams", "geospatial data teams"],
+    "pain_signals": ["satellite imagery", "remote sensing", "claims verification", "geospatial change detection", "property risk"],
+    "stack_signals": ["GDAL", "Rasterio", "GeoPandas", "PostGIS", "QGIS"],
+    "seed_repos": ["rasterio/rasterio", "geopandas/geopandas", "OSGeo/gdal"]
+  },
+  {
+    "id": "cruitical",
+    "name": "Cruitical",
+    "one_liner": "AI recruitment.",
+    "buyer_type": "recruiting",
+    "github_fit": "low",
+    "target_customers": ["recruiters", "talent teams", "founders hiring engineers"],
+    "pain_signals": ["candidate sourcing", "technical screening", "interview scheduling", "hiring pipeline"],
+    "stack_signals": ["ATS", "LinkedIn", "Greenhouse", "Lever"],
+    "seed_repos": []
+  },
+  {
+    "id": "imagine-ai",
+    "name": "Imagine AI",
+    "one_liner": "B2B content generation.",
+    "buyer_type": "content_tool",
+    "github_fit": "low",
+    "target_customers": ["marketing teams", "founders", "B2B content teams"],
+    "pain_signals": ["content generation", "SEO workflow", "social posts", "marketing copy"],
+    "stack_signals": ["CMS", "Webflow", "WordPress", "HubSpot"],
+    "seed_repos": []
+  },
+  {
+    "id": "corgi",
+    "name": "Corgi",
+    "one_liner": "AI-powered insurance.",
+    "buyer_type": "insurance",
+    "github_fit": "low",
+    "target_customers": ["insurance brokers", "underwriters", "claims teams"],
+    "pain_signals": ["policy workflow", "claims automation", "underwriting", "insurance operations"],
+    "stack_signals": ["Guidewire", "Duck Creek", "Salesforce"],
+    "seed_repos": []
+  },
+  {
+    "id": "lopus",
+    "name": "Lopus",
+    "one_liner": "Real-time analytics for growth engineers.",
+    "buyer_type": "devtool",
+    "github_fit": "high",
+    "target_customers": ["growth engineers", "product engineers", "data teams"],
+    "pain_signals": ["real-time analytics", "web analytics", "event pipelines", "event data", "product analytics", "feature flags", "attribution", "activation funnels", "reverse ETL", "growth experiments"],
+    "stack_signals": ["PostHog", "GrowthBook", "Segment", "RudderStack", "Snowplow", "ClickHouse", "Kafka"],
+    "seed_repos": ["PostHog/posthog", "rudderlabs/rudder-server", "snowplow/snowplow", "growthbook/growthbook", "umami-software/umami"]
+  },
+  {
+    "id": "openai",
+    "name": "OpenAI",
+    "one_liner": "AI platform and developer tools.",
+    "buyer_type": "devtool",
+    "github_fit": "high",
+    "target_customers": ["AI engineers", "agent builders", "platform teams"],
+    "pain_signals": ["OpenAI API", "AI SDK", "agents", "agent runs", "tool calling", "tool execution", "evals", "LLM latency", "model routing", "model capabilities", "reasoning models", "structured outputs", "RAG", "streaming"],
+    "stack_signals": ["OpenAI", "Python", "TypeScript", "LangChain", "LlamaIndex", "Vercel AI SDK"],
+    "seed_repos": ["openai/openai-node", "openai/openai-python", "openai/openai-cookbook", "vercel/ai", "langchain-ai/langchain"]
+  }
+]

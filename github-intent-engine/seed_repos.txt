@@ -1,0 +1,15 @@
+electric-sql/electric
+supabase/supabase
+appwrite/appwrite
+pocketbase/pocketbase
+rocicorp/replicache
+pubkey/rxdb
+yjs/yjs
+automerge/automerge
+liveblocks/liveblocks
+partykit/partykit
+instantdb/instant
+aspen-cloud/triplit
+vlcn-io/cr-sqlite
+orbitdb/orbitdb
+firebase/firebase-js-sdk
