@@ -237,6 +237,17 @@ function renderAppHtml(): string {
       background: var(--chip);
       color: var(--accent-strong);
     }
+    button.proof-button {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #244365;
+      font-size: 13px;
+    }
+    button.proof-button:hover {
+      background: var(--chip);
+      color: var(--accent-strong);
+    }
     .lead-list {
       display: grid;
       gap: 10px;
@@ -430,16 +441,16 @@ function renderAppHtml(): string {
       <section>
         <div class="toolbar">
           <form id="search-form">
-            <input id="query" name="query" value="Find founders or engineers on Github talking about cache invalidation, WebSocket infrastructure, Firebase alternatives, Supabase alternatives, or wanting a simpler full-stack backend." autocomplete="off">
+            <input id="query" name="query" value="Find founders or backend/full-stack engineers who look like potential buyers for Convex: people publicly struggling with cache invalidation, React Query invalidations, WebSocket/SSE subscriptions, Firebase or Supabase limits, schema churn, optimistic updates, or wanting simpler durable backend state for AI/product apps. Prioritize recent issues, PRs, or comments that show a burning problem, not docs-only activity." autocomplete="off">
             <button type="submit">Search</button>
           </form>
           <div class="preset-list" id="preset-list">
-            <button class="preset" type="button" data-query-id="convex_cache_websocket_baas_prompt" data-query="Find founders or engineers on Github talking about cache invalidation, WebSocket infrastructure, Firebase alternatives, Supabase alternatives, or wanting a simpler full-stack backend.">Convex Buyer</button>
-            <button class="preset" type="button" data-query-id="" data-query="Find founders or engineers building with Claude, Codex, MCP, coding agents, prompt handoff, agent collaboration, or monorepo context problems.">Lore Buyer</button>
-            <button class="preset" type="button" data-query-id="" data-query="Find growth engineers or product engineers working on real-time analytics, event ingestion, feature flags, attribution, activation funnels, ClickHouse, PostHog, GrowthBook, or RudderStack.">Lopus Buyer</button>
-            <button class="preset" type="button" data-query-id="" data-query="Find AI engineers building with OpenAI APIs, tool calling, agent runs, evals, vector stores, streaming, structured outputs, model routing, LangChain, or Vercel AI SDK.">OpenAI Buyer</button>
-            <button class="preset" type="button" data-query-id="" data-query="Find devtool founders, sales engineers, or ops engineers using spreadsheets, CRM workflows, enrichment, automation, no-code tools, or outbound personalization to manage GTM.">Orange Slice Buyer</button>
-            <button class="preset" type="button" data-query-id="convex_cache_websocket_baas_prompt" data-query="Find founders or engineers on Github talking about cache invalidation, WebSocket infrastructure, Firebase alternatives, Supabase alternatives, or wanting a simpler full-stack backend.">Cache + BaaS Alternatives</button>
+            <button class="preset" type="button" data-query-id="convex_cache_websocket_baas_prompt" data-query="Find founders or backend/full-stack engineers who look like potential buyers for Convex: people publicly struggling with cache invalidation, React Query invalidations, WebSocket/SSE subscriptions, Firebase or Supabase limits, schema churn, optimistic updates, or wanting simpler durable backend state for AI/product apps. Prioritize recent issues, PRs, or comments that show a burning problem, not docs-only activity.">Convex Buyer</button>
+            <button class="preset" type="button" data-query-id="" data-query="Find AI engineering teams or devtool founders who look like potential buyers for Lore: people running into Claude, Codex, or Cursor context limits, MCP server sprawl, agent handoff failures, lost repo context in monorepos, code review agent problems, or collaborative AI coding workflows. Prioritize recent issues, PRs, or comments that show team workflow pain.">Lore Buyer</button>
+            <button class="preset" type="button" data-query-id="" data-query="Find growth engineers or product engineers who look like potential buyers for Lopus: people struggling with real-time product analytics, event ingestion quality, attribution, activation funnels, feature flags, ClickHouse, PostHog, GrowthBook, RudderStack, Snowplow, reverse ETL, or debugging event data. Prioritize recent GitHub evidence of burning operational analytics problems.">Lopus Buyer</button>
+            <button class="preset" type="button" data-query-id="" data-query="Find AI engineers or platform teams who look like potential buyers for OpenAI: people building agents, tool calling, streaming UX, evals, structured outputs, RAG/vector stores, model routing, Vercel AI SDK, LangChain, or LlamaIndex integrations, and complaining about latency, reliability, eval quality, or model capability gaps. Prioritize production AI app pain.">OpenAI Buyer</button>
+            <button class="preset" type="button" data-query-id="" data-query="Find devtool founders or founder-led sales/GTM teams who look like potential buyers for Orange Slice: people using spreadsheets, Airtable, Clay, HubSpot, Salesforce, GitHub or LinkedIn enrichment, outbound personalization, CRM cleanup, or manual lead research workflows. Prioritize public repos, issues, or automation scripts showing prospecting workflow pain.">Orange Slice Buyer</button>
+            <button class="preset" type="button" data-query-id="convex_cache_websocket_baas_prompt" data-query="Find engineers comparing Firebase, Supabase, Appwrite, PocketBase, Parse, Hasura, or custom Postgres APIs because they need simpler full-stack backend state, realtime subscriptions, cache invalidation, auth-aware CRUD, or durable AI app state. Prioritize evidence where alternatives are causing active implementation pain.">Cache + BaaS Alternatives</button>
             <button class="preset" type="button" data-query-id="convex_realtime_sync_engineers" data-query="Find engineers who have been actively contributing to live query, reactive database, and realtime sync repos in the last 90 days.">Live Query Engineers</button>
             <button class="preset" type="button" data-query-id="convex_realtime_sync_engineers" data-query="Find engineers contributing to CRDT, local-first sync, conflict resolution, or offline-first collaboration infrastructure.">CRDT + Local-First</button>
             <button class="preset" type="button" data-query-id="convex_cache_websocket_baas_prompt" data-query="Find BaaS engineers working on realtime infrastructure, WebSocket subscriptions, or simpler serverless backend state.">BaaS Realtime Infra</button>
@@ -478,6 +489,7 @@ function renderAppHtml(): string {
     const baseline = document.getElementById("baseline-comparison");
     const detail = document.getElementById("lead-detail");
     let activeQueryId = "convex_cache_websocket_baas_prompt";
+    let activeQuery = input.value;
     let searchRunId = 0;
 
     form.addEventListener("submit", (event) => {
@@ -501,13 +513,23 @@ function renderAppHtml(): string {
       loadLeadDetail(lead.dataset.login);
     });
 
+    baseline.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-proof]");
+      if (!button) return;
+      const query = activeQuery;
+      const queryId = activeQueryId;
+      loadAuxiliaryPanels(query, queryId);
+    });
+
     async function runSearch(query, queryId) {
       const runId = ++searchRunId;
+      activeQuery = query;
+      activeQueryId = queryId;
       status.textContent = "Searching";
       list.innerHTML = "";
       plan.textContent = "Loading query plan...";
-      metrics.innerHTML = '<p class="detail-empty">Evaluation loads after results.</p>';
-      baseline.innerHTML = '<p class="detail-empty">Baseline comparison loads after results.</p>';
+      metrics.innerHTML = '<p class="detail-empty">Evaluation waits for results.</p>';
+      baseline.innerHTML = '<p class="detail-empty">Baseline comparison waits for results.</p>';
       detail.innerHTML = '<p class="detail-empty">Select a lead.</p>';
       loadQueryPlan(query, runId);
       try {
@@ -518,8 +540,8 @@ function renderAppHtml(): string {
         });
         if (runId !== searchRunId) return;
         renderSearchResults(data);
+        renderProofPrompt();
         status.textContent = data.results.length + " results";
-        loadAuxiliaryPanels(query, queryId);
       } catch (error) {
         if (runId !== searchRunId) return;
         status.textContent = "Search failed";
@@ -549,8 +571,17 @@ function renderAppHtml(): string {
       list.innerHTML = data.results.map(renderLead).join("");
     }
 
+    function renderProofPrompt() {
+      metrics.innerHTML = '<p class="detail-empty">Evaluation not run yet.</p>';
+      baseline.innerHTML = '<button class="proof-button" type="button" data-proof>Run proof</button>';
+    }
+
     async function loadAuxiliaryPanels(query, queryId) {
       const runId = searchRunId;
+      const previousStatus = status.textContent;
+      status.textContent = "Building proof";
+      metrics.innerHTML = '<p class="detail-empty">Evaluating ranked leads...</p>';
+      baseline.innerHTML = '<p class="detail-empty">Comparing keyword, semantic, and intent ranking...</p>';
       try {
         const comparison = await fetchJson("/compare", {
           method: "POST",
@@ -564,8 +595,10 @@ function renderAppHtml(): string {
         if (runId !== searchRunId) return;
         renderBaselines(comparison, evaluation);
         renderMetrics(evaluation);
+        status.textContent = previousStatus || "Proof ready";
       } catch (error) {
         if (runId !== searchRunId) return;
+        status.textContent = "Proof failed";
         baseline.innerHTML = '<p class="detail-empty">Baseline comparison unavailable.</p>';
         metrics.innerHTML = '<p class="detail-empty">Evaluation unavailable.</p>';
       }
@@ -654,7 +687,13 @@ function renderAppHtml(): string {
       }[char]));
     }
 
-    runSearch(input.value, activeQueryId);
+    function initializeDefaultQueryPlan() {
+      metrics.innerHTML = '<p class="detail-empty">Run a search to evaluate results.</p>';
+      baseline.innerHTML = '<p class="detail-empty">Run a search to compare baselines.</p>';
+      loadQueryPlan(input.value, searchRunId);
+    }
+
+    initializeDefaultQueryPlan();
   </script>
 </body>
 </html>`;

@@ -1,0 +1,13 @@
+{
+  "name": "hybrid-github-intent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "search": "node src/cli.js search",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

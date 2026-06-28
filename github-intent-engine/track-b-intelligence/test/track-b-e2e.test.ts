@@ -216,8 +216,18 @@ describe("Track B end-to-end pipeline", () => {
       expect(appHtml).toContain("Lopus Buyer");
       expect(appHtml).toContain("OpenAI Buyer");
       expect(appHtml).toContain("Orange Slice Buyer");
+      expect(appHtml).toContain("potential buyers for Convex");
+      expect(appHtml).toContain("potential buyers for Lore");
+      expect(appHtml).toContain("potential buyers for Lopus");
+      expect(appHtml).toContain("potential buyers for OpenAI");
+      expect(appHtml).toContain("potential buyers for Orange Slice");
+      expect(appHtml).toContain("Prioritize production AI app pain");
+      expect(appHtml).toContain("prospecting workflow pain");
       expect(appHtml).toContain("renderSearchResults(data)");
       expect(appHtml).toContain("loadAuxiliaryPanels(query, queryId)");
+      expect(appHtml).toContain("initializeDefaultQueryPlan();");
+      expect(appHtml).toContain("Run proof");
+      expect(appHtml).not.toContain("runSearch(input.value, activeQueryId);\n  </script>");
       expect(appHtml).not.toContain("Promise.all([");
     } finally {
       await new Promise<void>((resolve, reject) => {

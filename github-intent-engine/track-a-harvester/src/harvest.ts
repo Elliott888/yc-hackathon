@@ -24,7 +24,20 @@ export type HarvestOptions = {
   invalidSeedRepos?: HarvestReport["invalid_seed_repos"];
   duplicateSeedRepos?: string[];
   repoExpansions?: HarvestData["repoExpansions"];
+  include?: Partial<HarvestIncludeOptions>;
+  maxUsers?: number;
+  repoDelayMs?: number;
   checkpointStore?: CheckpointStore;
+};
+
+export type HarvestIncludeOptions = {
+  pullRequests: boolean;
+  issues: boolean;
+  comments: boolean;
+  commits: boolean;
+  manifests: boolean;
+  reviews: boolean;
+  workflows: boolean;
 };
 
 export type HarvestResult = {
@@ -51,6 +64,7 @@ export type CheckpointStore = {
 
 export async function harvestData(options: HarvestOptions): Promise<HarvestResult> {
   const startedAt = new Date();
+  const include = includeOptionsWithDefaults(options.include);
   const repos: RawRepo[] = [];
   const pullRequests: RawPullRequest[] = [];
   const issues: RawIssue[] = [];
@@ -80,6 +94,7 @@ export async function harvestData(options: HarvestOptions): Promise<HarvestResul
 
     const repo = await options.source.fetchRepo(fullName);
     if (!repo) {
+      await delayAfterLiveRepo(options.repoDelayMs);
       continue;
     }
 
@@ -87,10 +102,14 @@ export async function harvestData(options: HarvestOptions): Promise<HarvestResul
 
     const canonicalFullName = repo.full_name;
     const [repoPullRequests, repoIssues, repoComments, repoCommits] = await Promise.all([
-      options.source.fetchPullRequests(canonicalFullName, options.since),
-      options.source.fetchIssues(canonicalFullName, options.since),
-      options.source.fetchIssueComments(canonicalFullName, options.since),
-      options.source.fetchCommits(canonicalFullName, options.since)
+      include.pullRequests
+        ? options.source.fetchPullRequests(canonicalFullName, options.since)
+        : Promise.resolve([]),
+      include.issues ? options.source.fetchIssues(canonicalFullName, options.since) : Promise.resolve([]),
+      include.comments
+        ? options.source.fetchIssueComments(canonicalFullName, options.since)
+        : Promise.resolve([]),
+      include.commits ? options.source.fetchCommits(canonicalFullName, options.since) : Promise.resolve([])
     ]);
 
     pullRequests.push(...repoPullRequests);
@@ -99,12 +118,18 @@ export async function harvestData(options: HarvestOptions): Promise<HarvestResul
     commits.push(...repoCommits);
 
     const [repoManifests, repoReviews, repoReviewComments, repoWorkflowRuns] = await Promise.all([
-      options.source.fetchManifests?.(repo) ?? Promise.resolve([]),
-      options.source.fetchPullRequestReviews?.(canonicalFullName, repoPullRequests, options.since) ??
-        Promise.resolve([]),
-      options.source.fetchPullRequestReviewComments?.(canonicalFullName, repoPullRequests, options.since) ??
-        Promise.resolve([]),
-      options.source.fetchWorkflowRuns?.(canonicalFullName, options.since) ?? Promise.resolve([])
+      include.manifests ? options.source.fetchManifests?.(repo) ?? Promise.resolve([]) : Promise.resolve([]),
+      include.reviews
+        ? options.source.fetchPullRequestReviews?.(canonicalFullName, repoPullRequests, options.since) ??
+          Promise.resolve([])
+        : Promise.resolve([]),
+      include.reviews
+        ? options.source.fetchPullRequestReviewComments?.(canonicalFullName, repoPullRequests, options.since) ??
+          Promise.resolve([])
+        : Promise.resolve([]),
+      include.workflows
+        ? options.source.fetchWorkflowRuns?.(canonicalFullName, options.since) ?? Promise.resolve([])
+        : Promise.resolve([])
     ]);
 
     manifests.push(...repoManifests);
@@ -123,6 +148,8 @@ export async function harvestData(options: HarvestOptions): Promise<HarvestResul
       pullRequestReviewComments: repoReviewComments,
       workflowRuns: repoWorkflowRuns
     });
+
+    await delayAfterLiveRepo(options.repoDelayMs);
   }
 
   const dedupedRepos = dedupeBy(repos, (repo) => String(repo.id)).records;
@@ -153,7 +180,7 @@ export async function harvestData(options: HarvestOptions): Promise<HarvestResul
     pullRequestReviews: dedupedPullRequestReviews,
     pullRequestReviewComments: dedupedPullRequestReviewComments,
     workflowRuns: dedupedWorkflowRuns
-  });
+  }, options.maxUsers);
   const dedupedUsers = dedupeBy(users, (user) => user.login).records;
 
   const data: HarvestData = {
@@ -183,6 +210,25 @@ export async function harvestData(options: HarvestOptions): Promise<HarvestResul
   });
 
   return { data, report };
+}
+
+async function delayAfterLiveRepo(delayMs = 0): Promise<void> {
+  if (delayMs <= 0) {
+    return;
+  }
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
+function includeOptionsWithDefaults(include: HarvestOptions["include"]): HarvestIncludeOptions {
+  return {
+    pullRequests: include?.pullRequests ?? true,
+    issues: include?.issues ?? true,
+    comments: include?.comments ?? true,
+    commits: include?.commits ?? true,
+    manifests: include?.manifests ?? true,
+    reviews: include?.reviews ?? true,
+    workflows: include?.workflows ?? true
+  };
 }
 
 function pushRepoHarvestData(
@@ -222,8 +268,13 @@ async function fetchUsersForActors(
     | "pullRequestReviews"
     | "pullRequestReviewComments"
     | "workflowRuns"
-  >
+  >,
+  maxUsers = Number.POSITIVE_INFINITY
 ): Promise<RawUser[]> {
+  if (maxUsers <= 0) {
+    return [];
+  }
+
   const logins = new Set<string>();
 
   for (const repo of data.repos) {
@@ -252,7 +303,7 @@ async function fetchUsersForActors(
   }
 
   const users: RawUser[] = [];
-  for (const login of logins) {
+  for (const login of [...logins].slice(0, maxUsers)) {
     const user = await source.fetchUser(login);
     if (user) {
       users.push(user);

@@ -27,6 +27,14 @@ export type SearchOptions = {
   limit?: number;
 };
 
+type PreliminaryCandidate = {
+  lead: RankedLead;
+  semanticScore: number;
+  keywordScore: number;
+  topicScore: number;
+  quickEvidenceScore: number;
+};
+
 export async function searchLeads(options: SearchOptions): Promise<SearchResponse> {
   return searchLeadsWithMode({ ...options, mode: "intent" });
 }
@@ -82,26 +90,31 @@ async function searchLeadsWithMode(
   ];
   const expandedQuery = expandQuery(options.query);
   const queryVector = embedText(expandedQuery, dimensions);
+  const evidenceTopics = buyerFilteredExplicitTopics.length > 0 ? buyerFilteredExplicitTopics : queryPlan.topics;
+  const candidates = candidateLeadsForFullRanking({
+    leads,
+    embeddingByLogin,
+    queryVector,
+    query: options.query,
+    queryPlanTopics: queryPlan.topics,
+    explicitTopics: buyerFilteredExplicitTopics,
+    evidenceTopics,
+    mode: options.mode,
+    limit: options.limit ?? 10
+  });
 
-  const results = leads
-    .map((lead): SearchResultLead => {
-      const embedding = embeddingByLogin.get(lead.engineer_login);
-      const semanticScore = embedding
-        ? Math.max(
-            cosineSimilarity(queryVector, embedding.vector),
-            queryCoverageSimilarity(queryVector, embedding.vector)
-          )
-        : 0;
-      const keyword = keywordScore(
-        `${lead.semantic_document} ${lead.why_relevant} ${lead.outreach_angle}`,
-        options.query
-      );
-      const topic = Math.max(
-        topicCoverageScore(lead, queryPlan.topics),
-        topicCoverageScore(lead, buyerFilteredExplicitTopics)
-      );
-      const evidenceTopics = buyerFilteredExplicitTopics.length > 0 ? buyerFilteredExplicitTopics : queryPlan.topics;
-      const evidence = sortEvidenceForQuery(lead.evidence, evidenceTopics, options.query, recipe)
+  const results = candidates
+    .map((candidate): SearchResultLead => {
+      const lead = candidate.lead;
+      const semanticScore = candidate.semanticScore;
+      const keyword = candidate.keywordScore;
+      const topic = candidate.topicScore;
+      const evidence = sortEvidenceForQuery(
+        evidenceForFullRanking(lead.evidence, evidenceTopics, options.query),
+        evidenceTopics,
+        options.query,
+        recipe
+      )
         .map(enrichEvidenceCodeSignals);
       const evidenceScore = evidenceCoverageScore(evidence, evidenceTopics, options.query);
       const topProblem = topProblemContext(evidence, options.query, recipe);
@@ -157,6 +170,80 @@ async function searchLeadsWithMode(
     query_plan: queryPlan,
     results
   };
+}
+
+function candidateLeadsForFullRanking(input: {
+  leads: RankedLead[];
+  embeddingByLogin: Map<string, EngineerEmbedding>;
+  queryVector: number[];
+  query: string;
+  queryPlanTopics: string[];
+  explicitTopics: string[];
+  evidenceTopics: string[];
+  mode: RankingMode;
+  limit: number;
+}): PreliminaryCandidate[] {
+  const candidateLimit = Math.min(
+    input.leads.length,
+    Math.max(input.limit * 8, input.mode === "intent" ? 40 : 35)
+  );
+  if (input.leads.length <= candidateLimit) {
+    return input.leads.map((lead) => preliminaryCandidateForLead(lead, input));
+  }
+
+  return input.leads
+    .map((lead) => preliminaryCandidateForLead(lead, input))
+    .sort((left, right) => preliminaryScore(right, input.mode) - preliminaryScore(left, input.mode))
+    .slice(0, candidateLimit);
+}
+
+function preliminaryCandidateForLead(
+  lead: RankedLead,
+  input: Pick<
+    Parameters<typeof candidateLeadsForFullRanking>[0],
+    "embeddingByLogin" | "queryVector" | "query" | "queryPlanTopics" | "explicitTopics" | "evidenceTopics"
+  >
+): PreliminaryCandidate {
+  const embedding = input.embeddingByLogin.get(lead.engineer_login);
+  const semanticScore = embedding
+    ? Math.max(
+        cosineSimilarity(input.queryVector, embedding.vector),
+        queryCoverageSimilarity(input.queryVector, embedding.vector)
+      )
+    : 0;
+  const leadKeywordScore = keywordScore(
+    `${lead.semantic_document} ${lead.why_relevant} ${lead.outreach_angle}`,
+    input.query
+  );
+  const topicScore = Math.max(
+    topicCoverageScore(lead, input.queryPlanTopics),
+    topicCoverageScore(lead, input.explicitTopics)
+  );
+
+  return {
+    lead,
+    semanticScore,
+    keywordScore: leadKeywordScore,
+    topicScore,
+    quickEvidenceScore: quickEvidenceCoverageScore(lead.evidence, input.evidenceTopics, input.query)
+  };
+}
+
+function preliminaryScore(candidate: PreliminaryCandidate, mode: RankingMode): number {
+  if (mode === "keyword") {
+    return candidate.keywordScore * 100 + candidate.lead.score * 0.01 + candidate.quickEvidenceScore * 20;
+  }
+  if (mode === "semantic") {
+    return candidate.semanticScore * 100 + candidate.lead.score * 0.01 + candidate.quickEvidenceScore * 20;
+  }
+  return (
+    candidate.lead.score * 0.25 +
+    candidate.semanticScore * 25 +
+    candidate.keywordScore * 12 +
+    candidate.topicScore * 45 +
+    candidate.quickEvidenceScore * 80 +
+    (candidate.lead.neural_intent_score ?? 0) * 20
+  );
 }
 
 function finalScoreForMode(input: {
@@ -306,6 +393,62 @@ function evidenceCoverageScore(evidence: EvidenceRecord[], queryTopics: string[]
     return 0;
   }
   return Math.max(...evidence.map((item) => evidenceRelevanceScore(item, queryTopics, query)));
+}
+
+function quickEvidenceCoverageScore(evidence: EvidenceRecord[], queryTopics: string[], query: string): number {
+  if (evidence.length === 0) {
+    return 0;
+  }
+  const normalizedQuery = normalizeText(query);
+  return Math.max(
+    ...evidence.slice(0, 6).map((item) => quickEvidenceScoreForItem(item, queryTopics, normalizedQuery))
+  );
+}
+
+function evidenceForFullRanking(evidence: EvidenceRecord[], queryTopics: string[], query: string): EvidenceRecord[] {
+  if (evidence.length <= 6) {
+    return evidence;
+  }
+  const normalizedQuery = normalizeText(query);
+  return [...evidence]
+    .sort(
+      (left, right) =>
+        quickEvidenceScoreForItem(right, queryTopics, normalizedQuery) -
+        quickEvidenceScoreForItem(left, queryTopics, normalizedQuery)
+    )
+    .slice(0, 6);
+}
+
+function quickEvidenceScoreForItem(
+  item: EvidenceRecord,
+  queryTopics: string[],
+  normalizedQuery: string
+): number {
+  const text = `${item.title} ${item.text}`.slice(0, 4000);
+  const matchedTopicSet = new Set(item.matched_topics.map((topic) => topic.toLowerCase()));
+  const topicCoverage =
+    queryTopics.length === 0
+      ? 0
+      : queryTopics.filter((topic) => matchedTopicSet.has(topic.toLowerCase())).length / queryTopics.length;
+  const lexicalCoverage =
+    queryTopics.length === 0
+      ? 0
+      : queryTopics.filter((topic) => includesTerm(text, topic)).length / queryTopics.length;
+  const promptTermCoverage =
+    [
+      "cache invalidation",
+      "websocket",
+      "realtime",
+      "live query",
+      "sync",
+      "firebase",
+      "supabase",
+      "backend",
+      "subscription",
+      "subscriptions"
+    ].filter((term) => normalizedQuery.includes(term) && includesTerm(text, term)).length * 0.08;
+  const typeBoost = item.type === "issue" || item.type === "pull_request" ? 0.08 : 0.03;
+  return Math.min(1, topicCoverage * 0.5 + lexicalCoverage * 0.35 + promptTermCoverage + typeBoost);
 }
 
 function sortEvidenceForQuery(
@@ -1286,7 +1429,7 @@ export function buildQueryPlan(query: string, recipe: Awaited<ReturnType<typeof 
   return {
     raw_query: query,
     target_entity: targetEntityForQuery(query, recipe.target_entity),
-    target_product: recipe.target_product,
+    target_product: targetProductForQuery(query, recipe.target_product),
     time_window_days: recipe.time_window_days,
     categories: matchTerms(expanded, recipe.repo_categories),
     topics: filteredTopics,
@@ -1305,6 +1448,25 @@ export function buildQueryPlan(query: string, recipe: Awaited<ReturnType<typeof 
       "evidence"
     ]
   };
+}
+
+const buyerTargetProducts = [
+  { name: "Orange Slice", aliases: ["Orange Slice"] },
+  { name: "Rev1", aliases: ["Rev1"] },
+  { name: "Convex", aliases: ["Convex"] },
+  { name: "Lore", aliases: ["Lore"] },
+  { name: "Verdex", aliases: ["Verdex"] },
+  { name: "Cruitical", aliases: ["Cruitical"] },
+  { name: "Imagine AI", aliases: ["Imagine AI"] },
+  { name: "Corgi", aliases: ["Corgi"] },
+  { name: "Lopus", aliases: ["Lopus"] },
+  { name: "OpenAI", aliases: ["OpenAI"] }
+];
+
+function targetProductForQuery(query: string, fallback: string): string {
+  return (
+    buyerTargetProducts.find((buyer) => buyer.aliases.some((alias) => includesTerm(query, alias)))?.name ?? fallback
+  );
 }
 
 function filterBuyerSpecificTopicNoise(query: string, topics: string[]): string[] {

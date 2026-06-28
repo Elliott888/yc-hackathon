@@ -23,6 +23,9 @@ try {
     maxItemsPerList: options.maxItemsPerList,
     maxChangedFiles: options.maxChangedFiles,
     readmeLimit: options.readmeLimit,
+    includeReadmes: !options.skipReadmes,
+    includeFileDiffs: !options.skipFileDiffs,
+    maxManifestFiles: options.skipManifests ? 0 : options.maxManifestFiles,
     requestTimeoutMs: options.requestTimeoutMs
   });
 
@@ -40,6 +43,17 @@ try {
     invalidSeedRepos: parsedSeeds.invalid,
     duplicateSeedRepos: parsedSeeds.duplicates,
     repoExpansions,
+    include: {
+      pullRequests: !options.skipPullRequests,
+      issues: !options.skipIssues,
+      comments: !options.skipComments,
+      commits: !options.skipCommits,
+      manifests: !options.skipManifests,
+      reviews: !options.skipReviews,
+      workflows: !options.skipWorkflows
+    },
+    maxUsers: options.maxUsers,
+    repoDelayMs: options.repoDelayMs,
     checkpointStore: options.checkpointDir ? new FileCheckpointStore(options.checkpointDir) : undefined
   });
 

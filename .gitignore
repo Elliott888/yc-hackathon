@@ -67,3 +67,5 @@ neural-github-intent/evals/*
 !neural-github-intent/evals/.gitkeep
 neural-github-intent/model-experiments/*
 !neural-github-intent/model-experiments/.gitkeep
+
+github-user-deepener/data/*

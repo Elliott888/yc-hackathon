@@ -22,6 +22,29 @@ describe("prompt understanding", () => {
       expect.arrayContaining(["backend-as-a-service", "serverless backend", "reactive database"])
     );
   });
+
+  test("uses buyer product named in preset-style prompts", () => {
+    const recipe = recipeFixture();
+
+    expect(
+      buildQueryPlan(
+        "Find AI engineers or platform teams who look like potential buyers for OpenAI: people building agents and evals.",
+        recipe
+      ).target_product
+    ).toBe("OpenAI");
+    expect(
+      buildQueryPlan(
+        "Find AI engineering teams or devtool founders who look like potential buyers for Lore: people running into Codex context limits.",
+        recipe
+      ).target_product
+    ).toBe("Lore");
+    expect(
+      buildQueryPlan(
+        "Find growth engineers or product engineers who look like potential buyers for Lopus: people struggling with event ingestion quality.",
+        recipe
+      ).target_product
+    ).toBe("Lopus");
+  });
 });
 
 function recipeFixture() {
