@@ -45,6 +45,27 @@ npm test
 npm run search -- --query "Find Convex leads frustrated with WebSocket reconnect, Supabase realtime, cache invalidation, or Firebase alternatives" --limit 8
 ```
 
+Run a built-in buyer profile:
+
+```bash
+npm run search -- --buyer lore --limit 8
+npm run search -- --buyer lopus --limit 8
+npm run search -- --buyer openai --limit 8
+npm run search -- --buyer orange-slice --limit 8
+```
+
+Use every indexed snapshot currently available:
+
+```bash
+npm run search -- --buyer openai --all-indexes --limit 8
+```
+
+List every built-in profile and its default query:
+
+```bash
+node src/cli.js buyers
+```
+
 Default inputs:
 
 ```txt
@@ -66,6 +87,20 @@ node src/cli.js search \
 
 The screenshot UI should treat this folder as the search and reasoning backend. The client should not call GitHub directly and should not receive a GitHub token. The browser sends a natural-language query to a server API, the server runs this hybrid engine, and the response is converted into a graph-shaped trace.
 
+The UI buttons can map directly to the built-in `buyer` IDs:
+
+| UI Button | `buyer` ID | What It Searches For |
+|---|---|---|
+| Convex Buyer | `convex` | Cache invalidation, realtime sync, Firebase/Supabase/Appwrite alternatives, BaaS pain |
+| Lore Buyer | `lore` | AI coding workflows, Claude/Codex handoffs, shared context, review collaboration |
+| Lopus Buyer | `lopus` | Growth analytics, funnels, dashboards, event ingestion, ClickHouse/PostHog-style pain |
+| OpenAI Buyer | `openai` | Agents, tool calling, evals, traces, streaming chat, RAG, model-routing pain |
+| Orange Slice Buyer | `orange-slice` | Sales automation, CRM enrichment, lead scraping, outbound, spreadsheet workflows |
+| Cache + BaaS Alternatives | `cache-baas` | Stale state, self-hosted backend, Firebase/Supabase/Appwrite/PocketBase frustration |
+| Live Query Engineers | `live-query` | Live queries, reactive databases, subscriptions, database watchers |
+| CRDT + Local-First | `crdt-local-first` | CRDTs, local-first apps, Automerge/Yjs/Electric/Replicache, conflict resolution |
+| BaaS Realtime Infra | `baas-realtime` | Firebase/Supabase/Appwrite/Nhost/PocketBase realtime, auth, storage, self-hosted infra |
+
 Recommended flow:
 
 ```txt
@@ -83,8 +118,11 @@ The current CLI already returns the fields needed for the first version of the U
 - `results[].icp_fit_score`, `score_breakdown`: intent score ring and ranking bars
 - `results[].trigger`: evidence node, evidence timeline item, and clickable GitHub source
 - `results[].pain_signal`, `why_this_is_high_intent`, `why_convex_fits`: right-side reasoning copy
+- `results[].quality_label`, `quality_reason`: whether the lead is `demo_ready`, `strong`, `qualified`, or `thin`
+- `results[].why_product_fits`: buyer-specific fit explanation for Convex, Lore, Lopus, OpenAI, etc.
 - `results[].outreach`: personalized outreach panel
 - `results[].sources_used`: badges showing whether structured, neural, or both sources supported the lead
+- `coverage_diagnostics`: whether the indexed corpus is strong, usable, thin, or missing for this buyer
 
 ### Server API Contract
 
@@ -94,6 +132,8 @@ Request:
 
 ```json
 {
+  "useAllIndexes": true,
+  "buyer": "lore",
   "query": "Find founders or engineers talking about cache invalidation, WebSocket infrastructure, Firebase alternatives, Supabase alternatives, or wanting a simpler full-stack backend.",
   "limit": 20,
   "structuredRoot": "../github-intent-engine/data/workspaces/fullstack-backend-pain-doubled",
@@ -112,6 +152,17 @@ Response:
     "neuralLeads": 1284,
     "rawUsers": 1283
   },
+  "qualitySummary": {
+    "demoReady": 5,
+    "strong": 12,
+    "qualified": 20,
+    "thin": 4
+  },
+  "coverageDiagnostics": {
+    "status": "strong",
+    "message": "Enough high-confidence leads exist for a demo.",
+    "suggestedSeedRepos": []
+  },
   "leads": [
     {
       "id": "lead:daylightcreative",
@@ -120,8 +171,10 @@ Response:
       "company": "DayLight Creative Technologies",
       "githubUrl": "https://github.com/daylightcreative",
       "intentScore": 92,
+      "qualityLabel": "demo_ready",
       "scoreBreakdown": {
         "evidence": 100,
+        "productFit": 54,
         "persuasion": 90,
         "problemSpecificity": 100,
         "recency": 100
@@ -218,6 +271,13 @@ The UI can render this directly:
 - right panel: selected lead, `intentScore`, `whyRelevant`, `convexFit`, and outreach
 - bottom timeline: chronological `timeline` entries from GitHub issues, comments, PRs, commits, and code evidence
 
+Recommended UI behavior:
+
+- Show `demo_ready` and `strong` leads by default.
+- Keep `qualified` leads visible behind an "inspect more" control.
+- Hide `thin` leads from the first demo view unless the user lowers the threshold.
+- If `coverage_diagnostics.status` is `missing`, show the suggested seed repos and query terms instead of an empty table.
+
 ### Deep Evidence Mode
 
 For a stronger demo, use a two-step interaction:
@@ -255,6 +315,17 @@ trace_complete
 ```
 
 Each event should include `runId`, `stage`, `message`, and optional `leadId`. The client can use these events for the progress bar, the "trace complete" label, and animated node appearance.
+
+### Quality Notes From Buyer Benchmarks
+
+The current corpus is strongest for developer-tool buyers whose pain appears in GitHub issues and PRs:
+
+- Strong: `convex`, `openai`, `baas-realtime`
+- Usable: `lore`, `crdt-local-first`
+- Promising but needs more targeted harvesting: `lopus`
+- Missing with the current corpus: `orange-slice`
+
+For weak profiles, the backend should not fake confidence. If `result_count` is low or all scores are below the UI threshold, show the trace as "not enough indexed evidence" and suggest expanding the harvester toward the profile's source repos and search terms.
 
 ## Current Limits
 

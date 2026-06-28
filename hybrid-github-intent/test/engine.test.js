@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { rankHybridLeads } from "../src/engine.js";
+import { BUYER_PROFILES } from "../src/buyer-profiles.js";
+import { loadHybridInputsFromSources, rankHybridLeads } from "../src/engine.js";
 
 const query =
   'Find Convex leads frustrated with "WebSocket reconnect", "real-time sync", cache invalidation, or Supabase alternatives.';
@@ -350,4 +351,192 @@ test("older severe realtime issue can still rank as persuasive", () => {
 
   assert.equal(result.results.length, 1);
   assert.ok(result.results[0].icp_fit_score >= 7);
+});
+
+test("product-aware ranking prefers Lopus analytics pain over generic realtime pain", () => {
+  const result = rankHybridLeads({
+    query: BUYER_PROFILES.lopus.query,
+    buyerProfile: BUYER_PROFILES.lopus,
+    now: new Date("2026-06-28T12:00:00Z"),
+    rawUsers: [
+      {
+        login: "generic-realtime",
+        name: "Generic Realtime",
+        company: "App Co",
+        bio: "Building realtime apps",
+        type: "User"
+      },
+      {
+        login: "growth-analytics",
+        name: "Growth Analytics",
+        company: "Growth Startup",
+        bio: "Growth engineer working on product analytics",
+        type: "User"
+      }
+    ],
+    structuredLeads: [
+      {
+        engineer_login: "generic-realtime",
+        name: "Generic Realtime",
+        score: 95,
+        evidence: [
+          {
+            type: "issue",
+            repo: "supabase/supabase-flutter",
+            title: "Realtime channel subscribe stalls",
+            text: "What happened? Realtime channel subscribe stalls for minutes and websocket reconnect fails.",
+            url: "https://github.com/supabase/supabase-flutter/issues/1",
+            created_at: "2026-06-25T12:00:00Z",
+            matched_topics: ["realtime", "websocket"],
+            contribution_weight: 8
+          }
+        ]
+      },
+      {
+        engineer_login: "growth-analytics",
+        name: "Growth Analytics",
+        score: 60,
+        evidence: [
+          {
+            type: "issue",
+            repo: "posthog/posthog",
+            title: "Events arrive late and break growth dashboard funnels",
+            text: "Our production growth dashboard is unreliable because event ingestion lag makes funnels and experiment metrics stale for users.",
+            url: "https://github.com/posthog/posthog/issues/1",
+            created_at: "2026-06-24T12:00:00Z",
+            matched_topics: ["analytics", "events", "growth", "funnel"],
+            contribution_weight: 4
+          }
+        ]
+      }
+    ],
+    neuralLeads: []
+  });
+
+  assert.equal(result.buyer_profile.id, "lopus");
+  assert.equal(result.results[0].engineer_login, "growth-analytics");
+  assert.match(result.results[0].why_product_fits, /Lopus/);
+  assert.equal(result.results[0].why_convex_fits, undefined);
+});
+
+test("non-Convex buyer profile produces product-specific outreach", () => {
+  const result = rankHybridLeads({
+    query: BUYER_PROFILES.lore.query,
+    buyerProfile: BUYER_PROFILES.lore,
+    now: new Date("2026-06-28T12:00:00Z"),
+    rawUsers: [
+      {
+        login: "agent-team",
+        name: "Agent Team",
+        company: "AI Devtools Startup",
+        bio: "Building AI coding workflows",
+        type: "User"
+      }
+    ],
+    structuredLeads: [
+      {
+        engineer_login: "agent-team",
+        name: "Agent Team",
+        score: 62,
+        evidence: [
+          {
+            type: "issue",
+            repo: "coder/agentapi",
+            title: "Agent handoff loses shared Claude Code context",
+            text: "We hit a production workflow problem: Claude Code and Codex agents lose shared context during review handoff, so our team repeats prompt setup work.",
+            url: "https://github.com/coder/agentapi/issues/1",
+            created_at: "2026-06-26T12:00:00Z",
+            matched_topics: ["claude", "codex", "agent", "context"],
+            contribution_weight: 4
+          }
+        ]
+      }
+    ],
+    neuralLeads: []
+  });
+
+  assert.equal(result.results.length, 1);
+  assert.equal(result.results[0].product_fit.product, "Lore");
+  assert.match(result.results[0].why_product_fits, /Lore/);
+  assert.match(result.results[0].outreach.join(" "), /Lore/);
+  assert.doesNotMatch(result.results[0].outreach.join(" "), /Convex/);
+});
+
+test("quality summary marks strong direct product-fit evidence as demo-ready", () => {
+  const result = rankHybridLeads({
+    query: BUYER_PROFILES.openai.query,
+    buyerProfile: BUYER_PROFILES.openai,
+    now: new Date("2026-06-28T12:00:00Z"),
+    rawUsers: [
+      {
+        login: "agent-failure",
+        name: "Agent Failure",
+        company: "AI Startup",
+        bio: "Building agent workflows",
+        type: "User"
+      }
+    ],
+    structuredLeads: [
+      {
+        engineer_login: "agent-failure",
+        name: "Agent Failure",
+        score: 80,
+        evidence: [
+          {
+            type: "issue",
+            repo: "langchain-ai/langchainjs",
+            title: "Tool calling loop drops function result and breaks production agent",
+            text: "What happened? Our production AI agent fails because tool calling drops the function result. Users see a 400 error and the agent cannot recover.",
+            url: "https://github.com/langchain-ai/langchainjs/issues/1",
+            created_at: "2026-06-26T12:00:00Z",
+            matched_topics: ["agent", "tool call", "function calling"],
+            contribution_weight: 5
+          }
+        ]
+      }
+    ],
+    neuralLeads: []
+  });
+
+  assert.equal(result.results[0].quality_label, "demo_ready");
+  assert.equal(result.quality_summary.demo_ready, 1);
+  assert.equal(result.coverage_diagnostics.status, "thin");
+});
+
+test("coverage diagnostics reports missing corpus coverage with suggested seeds", () => {
+  const result = rankHybridLeads({
+    query: BUYER_PROFILES["orange-slice"].query,
+    buyerProfile: BUYER_PROFILES["orange-slice"],
+    now: new Date("2026-06-28T12:00:00Z"),
+    rawUsers: [],
+    structuredLeads: [],
+    neuralLeads: []
+  });
+
+  assert.equal(result.result_count, 0);
+  assert.equal(result.coverage_diagnostics.status, "missing");
+  assert.ok(result.coverage_diagnostics.suggested_seed_repos.includes("n8n-io/n8n"));
+});
+
+test("multi-index loader dedupes users while merging evidence", async () => {
+  const result = await loadHybridInputsFromSources([
+    {
+      id: "fixture-a",
+      structuredRoot: new URL("fixtures/source-a", import.meta.url).pathname,
+      neuralLeadsPath: new URL("fixtures/source-a/scored_leads.ndjson", import.meta.url).pathname
+    },
+    {
+      id: "fixture-b",
+      structuredRoot: new URL("fixtures/source-b", import.meta.url).pathname,
+      neuralLeadsPath: new URL("fixtures/source-b/scored_leads.ndjson", import.meta.url).pathname
+    }
+  ]);
+
+  assert.equal(result.structuredLeads.length, 1);
+  assert.equal(result.neuralLeads.length, 1);
+  assert.equal(result.rawUsers.length, 1);
+  assert.equal(result.structuredLeads[0].evidence.length, 2);
+  assert.equal(result.neuralLeads[0].recent_activity.length, 2);
+  assert.equal(result.inputTotals.structured_leads, 2);
+  assert.equal(result.indexSources.length, 2);
 });

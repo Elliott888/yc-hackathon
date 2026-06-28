@@ -77,8 +77,10 @@ const NEGATIVE_EVIDENCE_TERMS = [
   "campaign targeting",
   "csv import",
   "db diff:",
+  "dependency bump",
   "docs(troubleshooting)",
   "etag expected",
+  "generated-by: openai codex",
   "google ads",
   "google drive",
   "lint",
@@ -91,7 +93,8 @@ const NEGATIVE_EVIDENCE_TERMS = [
   "sponsored",
   "storage upload",
   "test(supabase_flutter)",
-  "typo"
+  "typo",
+  "was generative ai tooling used to co-author"
 ];
 
 const BUYER_VOICE_TERMS = [
