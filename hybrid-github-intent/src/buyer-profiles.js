@@ -31,6 +31,346 @@ const COMMON_QUERY_TERMS = new Set([
   "working"
 ]);
 
+const CUSTOM_DOMAIN_PROFILES = [
+  {
+    id: "mechanical-engineering",
+    label: "mechanical engineering",
+    painArea: "mechanical engineering",
+    matchTerms: [
+      "cad",
+      "cae",
+      "mechanical",
+      "mesh",
+      "meshing",
+      "simulation",
+      "step file",
+      "step files",
+      "tolerance"
+    ],
+    fitTerms: [
+      "cad",
+      "cae",
+      "cam",
+      "freecad",
+      "mesh",
+      "meshing",
+      "mechanical",
+      "mechanical design",
+      "mechanical engineering",
+      "simulation",
+      "solidworks",
+      "step",
+      "step file",
+      "tolerance"
+    ],
+    anchorTerms: [
+      "cae",
+      "cadquery",
+      "freecad",
+      "mechanical",
+      "mesh",
+      "meshing",
+      "simulation",
+      "solidworks",
+      "step file",
+      "tolerance"
+    ],
+    suggestedSeedRepos: [
+      "FreeCAD/FreeCAD",
+      "CadQuery/cadquery",
+      "Open-Cascade-SAS/OCCT",
+      "elmerfem/elmerfem",
+      "CalculiX/CalculiX",
+      "solvespace/solvespace"
+    ],
+    defaultFit(product) {
+      return `${product} is relevant because the evidence shows mechanical engineering workflows around CAD, simulation, meshing, or design automation breaking down.`;
+    },
+    solutionAngles(product) {
+      return [
+        {
+          terms: ["cad", "step", "mesh", "meshing", "simulation", "mechanical"],
+          text: `${product} can help mechanical teams turn brittle CAD, meshing, and simulation workflows into assisted engineering workflows.`
+        }
+      ];
+    }
+  },
+  {
+    id: "geospatial-insurance",
+    label: "geospatial insurance",
+    painArea: "geospatial/insurance",
+    matchTerms: [
+      "claims",
+      "geospatial",
+      "imagery",
+      "insurance",
+      "raster",
+      "roof detection",
+      "satellite",
+      "satellite imagery"
+    ],
+    fitTerms: [
+      "claims",
+      "geospatial",
+      "imagery",
+      "insurance",
+      "insurance claims",
+      "raster",
+      "rasterio",
+      "remote sensing",
+      "roof detection",
+      "satellite",
+      "satellite data",
+      "satellite imagery"
+    ],
+    anchorTerms: [
+      "geopandas",
+      "geospatial",
+      "gdal",
+      "imagery",
+      "insurance claims",
+      "raster",
+      "rasterio",
+      "remote sensing",
+      "roof detection",
+      "satellite",
+      "satellite imagery"
+    ],
+    suggestedSeedRepos: [
+      "rasterio/rasterio",
+      "geopandas/geopandas",
+      "opengeos/leafmap",
+      "microsoft/torchgeo",
+      "azavea/raster-vision",
+      "OSGeo/gdal"
+    ],
+    defaultFit(product) {
+      return `${product} is relevant because the evidence shows geospatial imagery, raster data quality, or insurance-claims verification pain.`;
+    },
+    solutionAngles(product) {
+      return [
+        {
+          terms: ["satellite", "imagery", "raster", "geospatial", "claims", "insurance"],
+          text: `${product} can help teams verify geospatial imagery and insurance evidence without hand-rolling fragile raster or claims workflows.`
+        }
+      ];
+    }
+  },
+  {
+    id: "recruiting",
+    label: "recruiting",
+    painArea: "recruiting",
+    matchTerms: ["ats", "candidate", "hiring", "recruiting", "recruitment", "resume"],
+    fitTerms: ["ats", "candidate", "hiring", "job matching", "recruiting", "recruitment", "resume", "talent"],
+    anchorTerms: ["ats", "candidate", "hiring", "job matching", "recruiting", "recruitment", "resume"],
+    suggestedSeedRepos: [
+      "opencats/OpenCATS",
+      "gitroomhq/postiz-app",
+      "twentyhq/twenty",
+      "n8n-io/n8n"
+    ],
+    defaultFit(product) {
+      return `${product} is relevant because the evidence shows recruiting, candidate matching, resume, or hiring workflow pain.`;
+    },
+    solutionAngles(product) {
+      return [
+        {
+          terms: ["candidate", "resume", "ats", "hiring", "recruiting"],
+          text: `${product} can help automate candidate and hiring workflows that are currently stitched together through custom tools.`
+        }
+      ];
+    }
+  },
+  {
+    id: "content-generation",
+    label: "content generation",
+    painArea: "content generation",
+    matchTerms: ["content", "copywriting", "creative", "generation", "marketing", "social media"],
+    fitTerms: ["content", "copywriting", "creative", "generation", "marketing", "social media", "video", "workflow"],
+    anchorTerms: ["content", "copywriting", "creative", "marketing", "social media", "video"],
+    suggestedSeedRepos: [
+      "langchain-ai/langchainjs",
+      "run-llama/llama_index",
+      "n8n-io/n8n",
+      "vercel/ai"
+    ],
+    defaultFit(product) {
+      return `${product} is relevant because the evidence shows content generation, creative workflow, or marketing automation pain.`;
+    },
+    solutionAngles(product) {
+      return [
+        {
+          terms: ["content", "creative", "marketing", "copywriting", "social media"],
+          text: `${product} can help teams scale content and creative workflows that are currently manual or custom-built.`
+        }
+      ];
+    }
+  },
+  {
+    id: "insurance",
+    label: "insurance",
+    painArea: "insurance",
+    matchTerms: ["claim", "claims", "insurance", "policy", "underwriting"],
+    fitTerms: ["claim", "claims", "insurance", "policy", "risk", "underwriting"],
+    anchorTerms: ["claim", "claims", "insurance", "underwriting"],
+    suggestedSeedRepos: [
+      "openfisca/openfisca-core",
+      "n8n-io/n8n",
+      "twentyhq/twenty"
+    ],
+    defaultFit(product) {
+      return `${product} is relevant because the evidence shows insurance claims, underwriting, policy, or risk workflow pain.`;
+    },
+    solutionAngles(product) {
+      return [
+        {
+          terms: ["insurance", "claims", "policy", "underwriting", "risk"],
+          text: `${product} can help teams automate insurance workflows that are currently handled through brittle internal tooling.`
+        }
+      ];
+    }
+  },
+  {
+    id: "observability",
+    label: "observability",
+    painArea: "observability",
+    matchTerms: [
+      "alert fatigue",
+      "debugging distributed systems",
+      "error grouping",
+      "flaky traces",
+      "log correlation",
+      "missing spans",
+      "observability",
+      "production incidents",
+      "traces"
+    ],
+    fitTerms: [
+      "alert fatigue",
+      "debugging",
+      "distributed systems",
+      "error grouping",
+      "incident",
+      "incidents",
+      "log correlation",
+      "logs",
+      "missing spans",
+      "observability",
+      "opentelemetry",
+      "span",
+      "spans",
+      "trace",
+      "traces",
+      "tracing"
+    ],
+    anchorTerms: [
+      "alert fatigue",
+      "error grouping",
+      "incident",
+      "log correlation",
+      "logs",
+      "missing spans",
+      "observability",
+      "opentelemetry",
+      "span",
+      "spans",
+      "trace",
+      "traces",
+      "tracing"
+    ],
+    strictAnchorTerms: [
+      "alert fatigue",
+      "error grouping",
+      "flaky traces",
+      "log correlation",
+      "missing spans",
+      "observability",
+      "opentelemetry",
+      "otel",
+      "span",
+      "spans",
+      "trace",
+      "traces",
+      "tracing"
+    ],
+    minStrictAnchorMatches: 2,
+    suggestedSeedRepos: [
+      "open-telemetry/opentelemetry-js",
+      "open-telemetry/opentelemetry-collector",
+      "grafana/grafana",
+      "getsentry/sentry",
+      "prometheus/prometheus",
+      "jaegertracing/jaeger"
+    ],
+    defaultFit(product) {
+      return `${product} is relevant because the evidence shows observability, tracing, incident debugging, or log-correlation pain.`;
+    },
+    solutionAngles(product) {
+      return [
+        {
+          terms: ["trace", "traces", "tracing", "span", "spans", "logs", "incident", "observability"],
+          text: `${product} can help teams debug production systems when traces, spans, logs, and incidents are hard to connect.`
+        }
+      ];
+    }
+  },
+  {
+    id: "serverless-state",
+    label: "serverless state",
+    painArea: "serverless state",
+    matchTerms: [
+      "actor systems",
+      "durable objects",
+      "edge coordination",
+      "regional consistency",
+      "serverless state",
+      "stateful serverless",
+      "websocket state"
+    ],
+    fitTerms: [
+      "actor",
+      "actor systems",
+      "durable object",
+      "durable objects",
+      "edge",
+      "edge coordination",
+      "regional consistency",
+      "serverless state",
+      "stateful serverless",
+      "websocket state"
+    ],
+    anchorTerms: [
+      "actor systems",
+      "durable object",
+      "durable objects",
+      "edge coordination",
+      "regional consistency",
+      "serverless state",
+      "stateful serverless",
+      "websocket state"
+    ],
+    suggestedSeedRepos: [
+      "cloudflare/workerd",
+      "cloudflare/workers-sdk",
+      "cloudflare/durable-objects-template",
+      "denoland/deno",
+      "partykit/partykit",
+      "socketcluster/socketcluster"
+    ],
+    defaultFit(product) {
+      return `${product} is relevant because the evidence shows stateful serverless, actor, edge coordination, or WebSocket state pain.`;
+    },
+    solutionAngles(product) {
+      return [
+        {
+          terms: ["durable object", "durable objects", "actor", "edge", "serverless", "websocket"],
+          text: `${product} can help teams manage stateful serverless and edge coordination without fragile actor or WebSocket plumbing.`
+        }
+      ];
+    }
+  }
+];
+
 export const BUYER_PROFILES = {
   convex: {
     id: "convex",
@@ -43,23 +383,30 @@ export const BUYER_PROFILES = {
       "appsync",
       "baas",
       "cache invalidation",
+      "data loss",
       "firebase",
       "firestore",
+      "initialstorage",
+      "large write",
       "liveblocks",
       "postgres_changes",
       "realtime",
       "real-time",
       "replication",
+      "room",
       "self-hosted backend",
+      "shared state",
+      "storage",
       "supabase",
       "sync",
+      "overwrite",
       "websocket"
     ],
     defaultFit:
       "Convex is a strong fit when the evidence shows brittle backend state, realtime sync, or cache invalidation work.",
     solutionAngles: [
       {
-        terms: ["websocket", "reconnect", "realtime", "real-time", "subscription", "channel"],
+        terms: ["websocket", "reconnect", "realtime", "real-time", "subscription", "channel", "room", "shared state", "data loss"],
         text: "Convex can replace custom realtime/WebSocket plumbing with a TypeScript-native reactive backend."
       },
       {
@@ -104,6 +451,20 @@ export const BUYER_PROFILES = {
       "review agent",
       "shared context"
     ],
+    strictFitTerms: [
+      "agent handoff",
+      "aider",
+      "claude code",
+      "codex",
+      "code review",
+      "cursor",
+      "handoff",
+      "opencode",
+      "pull request",
+      "pull requests",
+      "review agent"
+    ],
+    minStrictFitMatches: 1,
     defaultFit:
       "Lore fits teams whose GitHub activity shows AI coding workflows becoming hard to coordinate across people, agents, and context.",
     solutionAngles: [
@@ -415,6 +776,18 @@ export function resolveBuyerProfile({ buyer, query } = {}) {
 
 export function inferBuyerProfile(query = "") {
   const text = query.toLowerCase();
+  const explicitProductMatch = [
+    ["convex", ["convex"]],
+    ["lore", ["lore"]],
+    ["lopus", ["lopus"]],
+    ["openai", ["openai", "open ai"]],
+    ["orange-slice", ["orange slice"]]
+  ].find(([, terms]) => terms.some((term) => textMatchesWordOrPhrase(text, term)));
+
+  if (explicitProductMatch) {
+    return BUYER_PROFILES[explicitProductMatch[0]];
+  }
+
   const ordered = [
     ["orange-slice", ["orange slice", "spreadsheet", "sales", "crm", "outbound", "lead enrichment"]],
     ["lore", ["lore", "claude", "codex", "ai coding", "agent handoff", "shared context"]],
@@ -429,6 +802,13 @@ export function inferBuyerProfile(query = "") {
 
   const match = ordered.find(([, terms]) => terms.some((term) => text.includes(term)));
   return match ? BUYER_PROFILES[match[0]] : null;
+}
+
+function textMatchesWordOrPhrase(text, term) {
+  const normalizedTerm = String(term ?? "").trim().toLowerCase();
+  if (!normalizedTerm) return false;
+  if (/[^a-z0-9]/.test(normalizedTerm)) return text.includes(normalizedTerm);
+  return new RegExp(`(^|[^a-z0-9])${escapeRegex(normalizedTerm)}([^a-z0-9]|$)`).test(text);
 }
 
 export function queryConceptTerms(query = "") {
@@ -471,13 +851,93 @@ function normalizeProfileId(value) {
 }
 
 function customBuyerProfile(query = "") {
+  const product = extractProductName(query) ?? "the requested product";
+  const domains = matchingCustomDomains(query);
+  const domainFitTerms = domains.flatMap((domain) => domain.fitTerms);
+  const suggestedSeedRepos = [
+    ...new Set(domains.flatMap((domain) => domain.suggestedSeedRepos ?? []))
+  ];
+  const domainRepoTerms = [
+    ...new Set(suggestedSeedRepos.flatMap((repo) => repo.toLowerCase().split("/")).filter((term) => term.length >= 4))
+  ];
+  const domainAnchorTerms = [
+    ...new Set(domains.flatMap((domain) => domain.anchorTerms ?? []))
+  ];
+  const strictDomainAnchorTerms = [
+    ...new Set(domains.flatMap((domain) => domain.strictAnchorTerms ?? []))
+  ];
+  const minStrictDomainAnchorMatches = Math.max(
+    0,
+    ...domains.map((domain) => domain.minStrictAnchorMatches ?? 0)
+  );
+  const solutionAngles = domains.flatMap((domain) => domain.solutionAngles?.(product) ?? []);
+  const primaryDomain = domains[0];
+
   return {
     id: "custom",
-    label: "Custom Buyer",
-    product: "the requested product",
+    label: product === "the requested product" ? "Custom Buyer" : `${product} Buyer`,
+    product,
+    painArea: primaryDomain?.painArea ?? "requested",
     query,
-    fitTerms: queryConceptTerms(query),
-    defaultFit: "This lead is relevant because the GitHub evidence matches the requested buyer pain and product category.",
-    solutionAngles: []
+    domainIds: domains.map((domain) => domain.id),
+    domainRepoTerms,
+    domainAnchorTerms,
+    strictDomainAnchorTerms,
+    minStrictDomainAnchorMatches,
+    fitTerms: domains.length > 0
+      ? [...new Set(domainFitTerms)]
+      : queryConceptTerms(query),
+    defaultFit: primaryDomain?.defaultFit?.(product) ??
+      `${product} is relevant because the GitHub evidence matches the requested buyer pain and product category.`,
+    solutionAngles,
+    suggestedSeedRepos
   };
+}
+
+function extractProductName(query = "") {
+  const text = String(query ?? "").trim();
+  const patterns = [
+    /\b(?:for|about)\s+([A-Z][A-Za-z0-9.& -]{1,40})\s*\(/,
+    /\b(?:for|about)\s+([A-Z][A-Za-z0-9.& -]{1,40})\s*,/,
+    /\b(?:for|about)\s+([A-Z][A-Za-z0-9.& -]{1,40})\s+(?:who|that|which|to)\b/,
+    /\b(?:for|about)\s+(?:an?|the)\s+([a-z][a-z0-9 -]{2,50}?)(?:\.|,|\s+who\b|\s+that\b|\s+which\b|\s+to\b)/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    const product = cleanProductName(match?.[1]);
+    if (product) return product;
+  }
+
+  return null;
+}
+
+function cleanProductName(value) {
+  const cleaned = String(value ?? "")
+    .replace(/\b(?:users|customers|leads|buyers|engineers|founders|github)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.,:;()-]+$/g, "")
+    .trim();
+
+  if (!cleaned || cleaned.length > 40) return null;
+  const words = cleaned.split(/\s+/);
+  const product = words.slice(-4).join(" ");
+  return /[A-Z]/.test(product) ? product : sentenceCase(product);
+}
+
+function matchingCustomDomains(query = "") {
+  const text = query.toLowerCase();
+  return CUSTOM_DOMAIN_PROFILES.filter((domain) =>
+    domain.matchTerms.some((term) => text.includes(term.toLowerCase()))
+  );
+}
+
+function sentenceCase(value) {
+  const text = String(value).trim();
+  return text ? `${text[0].toUpperCase()}${text.slice(1)}` : text;
+}
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

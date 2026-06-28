@@ -525,16 +525,66 @@ function chooseBestEvidence({ query, evidenceItems, now, buyerProfile }) {
 
 function passesProductFitGate(evidence, buyerProfile) {
   if (!buyerProfile || buyerProfile.id === "custom") {
+    if ((buyerProfile?.suggestedSeedRepos?.length ?? 0) > 0) {
+      const hasDomainAnchor = evidenceMatchesAnyTerm(evidence, buyerProfile.domainAnchorTerms ?? []);
+      const strictAnchorCount = countEvidenceTermMatches(evidence, buyerProfile.strictDomainAnchorTerms ?? []);
+      const hasEnoughStrictAnchors =
+        (buyerProfile.minStrictDomainAnchorMatches ?? 0) === 0 ||
+        strictAnchorCount >= buyerProfile.minStrictDomainAnchorMatches ||
+        evidenceRepoMatchesDomain(evidence, buyerProfile) ||
+        evidence.exact_phrase_matches.length > 0;
+      if (!hasEnoughStrictAnchors) {
+        return false;
+      }
+      return (
+        (hasDomainAnchor && evidence.product_fit_score >= 0.54) ||
+        (hasDomainAnchor && evidence.product_fit_score >= 0.30 && evidenceRepoMatchesDomain(evidence, buyerProfile)) ||
+        evidence.exact_phrase_matches.length > 0
+      );
+    }
     return evidence.product_fit_score >= 0.08 || evidence.semantic_score >= 0.18 || evidence.exact_phrase_matches.length > 0;
   }
   if (buyerProfile.id === "convex") {
     return true;
+  }
+  if ((buyerProfile.strictFitTerms?.length ?? 0) > 0) {
+    const strictFitCount = countEvidenceTermMatches(evidence, buyerProfile.strictFitTerms);
+    const hasEnoughStrictFit =
+      strictFitCount >= (buyerProfile.minStrictFitMatches ?? 1) ||
+      evidenceRepoMatchesSuggestedSeed(evidence, buyerProfile) ||
+      evidence.exact_phrase_matches.length > 0;
+    if (!hasEnoughStrictFit) {
+      return false;
+    }
   }
   return (
     evidence.product_fit_score >= 0.24 ||
     (evidence.product_fit_score >= 0.18 && evidence.semantic_score >= 0.32) ||
     evidence.exact_phrase_matches.length > 0
   );
+}
+
+function evidenceRepoMatchesDomain(evidence, buyerProfile) {
+  const repoText = String(evidence.repo ?? "").toLowerCase();
+  return (buyerProfile.domainRepoTerms ?? []).some((term) => repoText.includes(term));
+}
+
+function evidenceRepoMatchesSuggestedSeed(evidence, buyerProfile) {
+  const repoText = String(evidence.repo ?? "").toLowerCase();
+  const terms = (buyerProfile.suggestedSeedRepos ?? [])
+    .flatMap((repo) => String(repo).toLowerCase().split("/"))
+    .filter((term) => term.length >= 4);
+  return terms.some((term) => repoText.includes(term));
+}
+
+function evidenceMatchesAnyTerm(evidence, terms) {
+  const text = evidenceText(evidence).toLowerCase();
+  return terms.some((term) => textMatchesTerm(text, term));
+}
+
+function countEvidenceTermMatches(evidence, terms) {
+  const text = evidenceText(evidence).toLowerCase();
+  return terms.filter((term) => textMatchesTerm(text, term)).length;
 }
 
 function productFitTermScore(text, buyerProfile, query) {
@@ -769,6 +819,10 @@ function outreachForLead(lead, evidence, buyerProfile) {
 }
 
 function buyerPainArea(buyerProfile) {
+  if (buyerProfile?.painArea) {
+    return buyerProfile.painArea;
+  }
+
   const areas = {
     convex: "backend/realtime",
     lore: "AI-coding collaboration",

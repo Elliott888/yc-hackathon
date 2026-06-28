@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BUYER_PROFILES } from "../src/buyer-profiles.js";
+import { BUYER_PROFILES, resolveBuyerProfile } from "../src/buyer-profiles.js";
 import { loadHybridInputsFromSources, rankHybridLeads } from "../src/engine.js";
 
 const query =
@@ -314,6 +314,86 @@ test("code-only comments do not look like persuasive buyer pain", () => {
   assert.equal(result.results.length, 0);
 });
 
+test("Convex profile rejects Copilot script failure noise", () => {
+  const result = rankHybridLeads({
+    query,
+    buyerProfile: BUYER_PROFILES.convex,
+    now: new Date("2026-06-28T12:00:00Z"),
+    rawUsers: [
+      {
+        login: "script-noise",
+        name: "Script Noise",
+        company: "Devtools Startup",
+        bio: "Build tooling maintainer",
+        type: "User"
+      }
+    ],
+    structuredLeads: [
+      {
+        engineer_login: "script-noise",
+        name: "Script Noise",
+        score: 95,
+        evidence: [
+          {
+            type: "comment",
+            repo: "pubkey/rxdb-server",
+            title: "@copilot still fails: node ./scripts/update-version-variable.mjs exits during release",
+            text: "@copilot still fails: node ./scripts/update-version-variable.mjs prints package version output and exits with a release script error. This is test automation noise, not backend state or realtime app pain.",
+            url: "https://github.com/pubkey/rxdb-server/issues/1#issuecomment-1",
+            created_at: "2026-06-27T12:00:00Z",
+            matched_topics: ["sync"],
+            contribution_weight: 5
+          }
+        ]
+      }
+    ],
+    neuralLeads: []
+  });
+
+  assert.equal(result.results.length, 0);
+});
+
+test("Convex profile treats shared room overwrite data loss as demo-ready", () => {
+  const result = rankHybridLeads({
+    query,
+    buyerProfile: BUYER_PROFILES.convex,
+    now: new Date("2026-06-28T12:00:00Z"),
+    rawUsers: [
+      {
+        login: "shared-state-builder",
+        name: "Shared State Builder",
+        company: "Realtime App Co",
+        bio: "Building collaborative apps",
+        type: "User"
+      }
+    ],
+    structuredLeads: [
+      {
+        engineer_login: "shared-state-builder",
+        name: "Shared State Builder",
+        score: 90,
+        evidence: [
+          {
+            type: "issue",
+            repo: "liveblocks/liveblocks",
+            title: "Attempting a large single write overwrites a room with initialStorage",
+            text: "What happened? A large write to shared room storage overwrites existing collaborative state with initialStorage and causes data loss for users.",
+            url: "https://github.com/liveblocks/liveblocks/issues/1",
+            created_at: "2026-06-27T12:00:00Z",
+            matched_topics: ["liveblocks", "room", "shared state", "data loss"],
+            contribution_weight: 5
+          }
+        ]
+      }
+    ],
+    neuralLeads: []
+  });
+
+  assert.equal(result.results.length, 1);
+  assert.equal(result.results[0].quality_label, "demo_ready");
+  assert.ok(result.results[0].score_breakdown.product_fit >= 5);
+});
+
 test("older severe realtime issue can still rank as persuasive", () => {
   const result = rankHybridLeads({
     query,
@@ -462,6 +542,45 @@ test("non-Convex buyer profile produces product-specific outreach", () => {
   assert.doesNotMatch(result.results[0].outreach.join(" "), /Convex/);
 });
 
+test("Lore profile rejects generic multi-agent infrastructure without AI-coding collaboration anchors", () => {
+  const result = rankHybridLeads({
+    query: BUYER_PROFILES.lore.query,
+    buyerProfile: BUYER_PROFILES.lore,
+    now: new Date("2026-06-28T12:00:00Z"),
+    rawUsers: [
+      {
+        login: "agent-infra",
+        name: "Agent Infra",
+        company: "AI Infra Startup",
+        bio: "Building multi-agent systems",
+        type: "User"
+      }
+    ],
+    structuredLeads: [
+      {
+        engineer_login: "agent-infra",
+        name: "Agent Infra",
+        score: 90,
+        evidence: [
+          {
+            type: "issue",
+            repo: "agent-infra/orchestrator",
+            title: "Core SDK lacks a multi-model panel provider without a multi-agent graph",
+            text: "The orchestrator can run multiple agents with GPT and Anthropic Claude models but cannot get a multi-model perspective on one response without creating a new multi-agent graph. The shared context and prompt workflow are internal runtime concepts, not team AI-coding collaboration.",
+            url: "https://github.com/agent-infra/orchestrator/issues/1",
+            created_at: "2026-06-27T12:00:00Z",
+            matched_topics: ["multi-agent", "shared context", "prompt workflow"],
+            contribution_weight: 5
+          }
+        ]
+      }
+    ],
+    neuralLeads: []
+  });
+
+  assert.equal(result.results.length, 0);
+});
+
 test("quality summary marks strong direct product-fit evidence as demo-ready", () => {
   const result = rankHybridLeads({
     query: BUYER_PROFILES.openai.query,
@@ -539,4 +658,245 @@ test("multi-index loader dedupes users while merging evidence", async () => {
   assert.equal(result.neuralLeads[0].recent_activity.length, 2);
   assert.equal(result.inputTotals.structured_leads, 2);
   assert.equal(result.indexSources.length, 2);
+});
+
+test("custom buyer profile extracts product and expands domain terms", () => {
+  const profile = resolveBuyerProfile({
+    query:
+      "I want leads for Rev1, AI for mechanical engineers. Find engineers discussing CAD, CAE, STEP files, meshing failures, simulation setup, tolerance analysis, or mechanical design automation."
+  });
+
+  assert.equal(profile.id, "custom");
+  assert.equal(profile.product, "Rev1");
+  assert.equal(profile.label, "Rev1 Buyer");
+  assert.ok(profile.fitTerms.includes("cad"));
+  assert.ok(profile.fitTerms.includes("step"));
+  assert.ok(profile.fitTerms.includes("mechanical engineering"));
+  assert.ok(profile.suggestedSeedRepos.includes("FreeCAD/FreeCAD"));
+});
+
+test("explicit buyer product name outranks generic pain-category inference", () => {
+  const profile = resolveBuyerProfile({
+    query:
+      "I want leads for Convex. Find founders or engineers talking about cache invalidation, WebSocket infrastructure, Firebase alternatives, Supabase alternatives, or wanting a simpler full-stack backend."
+  });
+
+  assert.equal(profile.id, "convex");
+  assert.equal(profile.product, "Convex");
+});
+
+test("custom buyer profile extracts product from parenthetical format", () => {
+  const profile = resolveBuyerProfile({
+    query:
+      "Find GitHub users for Verdex (Satellite Imagery Verification for Insurance) who are discussing geospatial imagery, raster pipelines, roof detection, claims workflows, or satellite data quality."
+  });
+
+  assert.equal(profile.product, "Verdex");
+  assert.equal(profile.label, "Verdex Buyer");
+  assert.ok(profile.fitTerms.includes("satellite imagery"));
+  assert.ok(profile.fitTerms.includes("geospatial"));
+  assert.ok(profile.fitTerms.includes("insurance claims"));
+  assert.ok(profile.suggestedSeedRepos.includes("rasterio/rasterio"));
+});
+
+test("custom buyer ranking uses extracted product in fit and outreach", () => {
+  const query =
+    "I want leads for Rev1, AI for mechanical engineers. Find engineers discussing CAD, CAE, STEP files, meshing failures, simulation setup, tolerance analysis, or mechanical design automation.";
+  const profile = resolveBuyerProfile({ query });
+  const result = rankHybridLeads({
+    query,
+    buyerProfile: profile,
+    now: new Date("2026-06-28T12:00:00Z"),
+    rawUsers: [
+      {
+        login: "mech-founder",
+        name: "Mechanical Founder",
+        company: "Hardware Startup",
+        bio: "Building CAD automation for mechanical teams",
+        type: "User"
+      }
+    ],
+    structuredLeads: [
+      {
+        engineer_login: "mech-founder",
+        name: "Mechanical Founder",
+        score: 55,
+        evidence: [
+          {
+            type: "issue",
+            repo: "FreeCAD/FreeCAD",
+            title: "STEP import creates invalid mesh and breaks tolerance analysis workflow",
+            text: "What happened? Our mechanical design automation pipeline fails when STEP import creates invalid CAD geometry. The CAE simulation setup breaks and engineers manually repair the mesh.",
+            url: "https://github.com/FreeCAD/FreeCAD/issues/1",
+            created_at: "2026-06-26T12:00:00Z",
+            matched_topics: ["cad", "step", "mesh", "simulation"],
+            contribution_weight: 5
+          }
+        ]
+      }
+    ],
+    neuralLeads: []
+  });
+
+  assert.equal(result.results.length, 1);
+  assert.equal(result.results[0].product_fit.product, "Rev1");
+  assert.match(result.results[0].why_product_fits, /Rev1/);
+  assert.match(result.results[0].outreach.join(" "), /Rev1/);
+  assert.match(result.results[0].why_this_is_high_intent, /mechanical engineering/);
+});
+
+test("custom domain profile rejects weak one-term false positives", () => {
+  const query =
+    "I want leads for Rev1, AI for mechanical engineers. Find engineers discussing CAD, CAE, STEP files, meshing failures, simulation setup, tolerance analysis, or mechanical design automation.";
+  const profile = resolveBuyerProfile({ query });
+  const result = rankHybridLeads({
+    query,
+    buyerProfile: profile,
+    now: new Date("2026-06-28T12:00:00Z"),
+    rawUsers: [
+      {
+        login: "generic-backend",
+        name: "Generic Backend",
+        company: "Backend Startup",
+        bio: "Backend engineer",
+        type: "User"
+      }
+    ],
+    structuredLeads: [
+      {
+        engineer_login: "generic-backend",
+        name: "Generic Backend",
+        score: 95,
+        evidence: [
+          {
+            type: "issue",
+            repo: "supabase/supabase-flutter",
+            title: "Realtime channel fails during setup",
+            text: "What happened? The realtime channel fails during setup and users stop receiving updates.",
+            url: "https://github.com/supabase/supabase-flutter/issues/2",
+            created_at: "2026-06-26T12:00:00Z",
+            matched_topics: ["realtime"],
+            contribution_weight: 5
+          }
+        ]
+      }
+    ],
+    neuralLeads: []
+  });
+
+  assert.equal(result.results.length, 0);
+  assert.equal(result.coverage_diagnostics.status, "missing");
+});
+
+test("custom observability query extracts category and seed repos", () => {
+  const profile = resolveBuyerProfile({
+    query:
+      "I want leads for an observability startup. Find engineers talking about flaky traces, missing spans, error grouping, production incidents, log correlation, alert fatigue, or debugging distributed systems."
+  });
+
+  assert.equal(profile.product, "Observability startup");
+  assert.equal(profile.painArea, "observability");
+  assert.ok(profile.fitTerms.includes("trace"));
+  assert.ok(profile.fitTerms.includes("error grouping"));
+  assert.ok(profile.suggestedSeedRepos.includes("open-telemetry/opentelemetry-js"));
+});
+
+test("custom observability profile rejects generic production failures without observability anchors", () => {
+  const query =
+    "I want leads for an observability startup. Find engineers talking about flaky traces, missing spans, error grouping, production incidents, log correlation, alert fatigue, or debugging distributed systems.";
+  const profile = resolveBuyerProfile({ query });
+  const result = rankHybridLeads({
+    query,
+    buyerProfile: profile,
+    now: new Date("2026-06-28T12:00:00Z"),
+    rawUsers: [
+      {
+        login: "prod-debugger",
+        name: "Production Debugger",
+        company: "Infra Startup",
+        bio: "Backend engineer",
+        type: "User"
+      }
+    ],
+    structuredLeads: [
+      {
+        engineer_login: "prod-debugger",
+        name: "Production Debugger",
+        score: 98,
+        evidence: [
+          {
+            type: "issue",
+            repo: "generic/backend",
+            title: "Rolling deploy caused a production incident",
+            text: "What happened? During a distributed systems deploy we had a production incident. The logs include a stack trace, but this is really a retry race in startup order.",
+            url: "https://github.com/generic/backend/issues/1",
+            created_at: "2026-06-27T12:00:00Z",
+            matched_topics: ["production incident"],
+            contribution_weight: 5
+          }
+        ]
+      }
+    ],
+    neuralLeads: []
+  });
+
+  assert.equal(result.results.length, 0);
+  assert.equal(result.coverage_diagnostics.status, "missing");
+});
+
+test("custom observability profile accepts explicit tracing and span failures", () => {
+  const query =
+    "I want leads for an observability startup. Find engineers talking about flaky traces, missing spans, error grouping, production incidents, log correlation, alert fatigue, or debugging distributed systems.";
+  const profile = resolveBuyerProfile({ query });
+  const result = rankHybridLeads({
+    query,
+    buyerProfile: profile,
+    now: new Date("2026-06-28T12:00:00Z"),
+    rawUsers: [
+      {
+        login: "otel-builder",
+        name: "OTel Builder",
+        company: "Infra Startup",
+        bio: "Observability engineer",
+        type: "User"
+      }
+    ],
+    structuredLeads: [
+      {
+        engineer_login: "otel-builder",
+        name: "OTel Builder",
+        score: 72,
+        evidence: [
+          {
+            type: "issue",
+            repo: "open-telemetry/opentelemetry-js",
+            title: "OpenTelemetry tracing drops child spans after reconnect",
+            text: "What happened? Missing spans break trace correlation during production incidents and make error grouping unreliable.",
+            url: "https://github.com/open-telemetry/opentelemetry-js/issues/1",
+            created_at: "2026-06-27T12:00:00Z",
+            matched_topics: ["opentelemetry", "tracing", "spans"],
+            contribution_weight: 5
+          }
+        ]
+      }
+    ],
+    neuralLeads: []
+  });
+
+  assert.equal(result.results.length, 1);
+  assert.equal(result.results[0].product_fit.product, "Observability startup");
+  assert.match(result.results[0].why_product_fits, /traces|spans|logs|incidents/i);
+});
+
+test("custom serverless state query extracts category and stateful edge terms", () => {
+  const profile = resolveBuyerProfile({
+    query:
+      "I want leads for a serverless state platform. Find engineers discussing Durable Objects, actor systems, websocket state, edge coordination, regional consistency, or stateful serverless scaling."
+  });
+
+  assert.equal(profile.product, "Serverless state platform");
+  assert.equal(profile.painArea, "serverless state");
+  assert.ok(profile.fitTerms.includes("durable objects"));
+  assert.ok(profile.fitTerms.includes("actor systems"));
+  assert.ok(profile.suggestedSeedRepos.includes("cloudflare/workerd"));
 });

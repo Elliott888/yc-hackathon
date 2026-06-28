@@ -18,6 +18,7 @@ const FAILURE_TERMS = [
   "lost",
   "never register",
   "overwrite",
+  "overwrites",
   "regression",
   "reconnect",
   "stall",
@@ -62,8 +63,14 @@ const CONVEX_FIT_TERMS = [
 
 const STRONG_NEGATIVE_EVIDENCE_TERMS = [
   "ami build",
+  "approved ## code review",
+  "@copilot",
+  "code review overall",
+  "commented ## code review",
+  "copilot still fails",
   "etag expected",
   "google drive",
+  "node ./scripts",
   "postinstall script",
   "s3 storage",
   "smtp connection",

@@ -60,6 +60,14 @@ Use every indexed snapshot currently available:
 npm run search -- --buyer openai --all-indexes --limit 8
 ```
 
+Run an arbitrary product query:
+
+```bash
+npm run search -- \
+  --all-indexes \
+  --query "I want leads for an observability startup. Find engineers talking about flaky traces, missing spans, error grouping, production incidents, log correlation, alert fatigue, or debugging distributed systems."
+```
+
 List every built-in profile and its default query:
 
 ```bash
@@ -277,6 +285,20 @@ Recommended UI behavior:
 - Keep `qualified` leads visible behind an "inspect more" control.
 - Hide `thin` leads from the first demo view unless the user lowers the threshold.
 - If `coverage_diagnostics.status` is `missing`, show the suggested seed repos and query terms instead of an empty table.
+- If `coverage_diagnostics.status` is `thin`, show the lead with a coverage warning rather than presenting it as a complete market map.
+
+### Arbitrary Product Queries
+
+For product descriptions that do not match a built-in buyer profile, the engine now creates a custom buyer profile from the query:
+
+- routes explicit product names like `Convex`, `OpenAI`, `Lore`, `Lopus`, and `Orange Slice` before matching broad pain categories
+- extracts the product name when the query says `for Rev1`, `for Verdex (...)`, or `for an observability startup`
+- expands known domains such as mechanical/CAD, geospatial/insurance, recruiting, content generation, observability, and serverless state
+- requires stronger domain anchors for niche domains so generic backend failures do not become fake leads
+- uses stricter profile-specific anchors where broad terms are misleading; for example, Lore requires AI-coding collaboration evidence, and observability requires tracing/span/OpenTelemetry-style evidence rather than generic production failures
+- returns `coverage_diagnostics.suggested_seed_repos` when the current indexes do not cover the buyer's market
+
+This means the correct output for some products is intentionally "missing coverage" rather than a bad lead list. For example, the current indexes are strong for OpenAI/BaaS/realtime/devtools searches, but they do not yet cover mechanical CAD or satellite insurance deeply enough. The UI should surface the suggested seed repos as the next indexing action.
 
 ### Deep Evidence Mode
 
@@ -322,8 +344,8 @@ The current corpus is strongest for developer-tool buyers whose pain appears in 
 
 - Strong: `convex`, `openai`, `baas-realtime`
 - Usable: `lore`, `crdt-local-first`
-- Promising but needs more targeted harvesting: `lopus`
-- Missing with the current corpus: `orange-slice`
+- Promising but needs more targeted harvesting: `lopus`, observability-style custom queries
+- Missing with the current corpus: `orange-slice`, mechanical/CAD, geospatial insurance, recruiting-specific searches
 
 For weak profiles, the backend should not fake confidence. If `result_count` is low or all scores are below the UI threshold, show the trace as "not enough indexed evidence" and suggest expanding the harvester toward the profile's source repos and search terms.
 
