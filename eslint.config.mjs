@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "GitHub Intent Engine Search Mockup UI/**",
+    "github-intent-engine/**",
+    "neural-github-intent/**",
   ]),
 ]);
 

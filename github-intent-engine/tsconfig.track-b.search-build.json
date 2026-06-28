@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["track-b-intelligence/src/search.ts"],
+  "exclude": ["track-a-harvester/test", "track-b-intelligence/test"]
+}

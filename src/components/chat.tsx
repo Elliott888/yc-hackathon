@@ -557,7 +557,7 @@ function useWorkflowState(): WorkflowContextValue {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ painPoints }),
+        body: JSON.stringify({ painPoints, companyName }),
       });
 
       const elapsed = Date.now() - startedAt;
@@ -1259,24 +1259,28 @@ function PainPointsPanel({
                       />
                     </div>
                     <CollapsibleContent>
-                      <div className="flex flex-col gap-4 border-t p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-sm font-medium">Code examples</div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addSubpoint(painPoint.id)}
-                          >
-                            <PlusIcon data-icon="inline-start" />
-                            Add
-                          </Button>
+                      <div className="border-t bg-muted/20 px-3 py-3">
+                        <div className="ml-7 flex flex-col gap-4 border-l border-border pl-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-xs font-medium text-muted-foreground">
+                              Code examples
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => addSubpoint(painPoint.id)}
+                            >
+                              <PlusIcon data-icon="inline-start" />
+                              Add
+                            </Button>
+                          </div>
+                          <CodeExampleList
+                            painPoint={painPoint}
+                            onUpdateSubpoint={updateSubpoint}
+                            onRemoveSubpoint={removeSubpoint}
+                          />
                         </div>
-                        <CodeExampleList
-                          painPoint={painPoint}
-                          onUpdateSubpoint={updateSubpoint}
-                          onRemoveSubpoint={removeSubpoint}
-                        />
                       </div>
                     </CollapsibleContent>
                   </div>
@@ -1744,7 +1748,7 @@ function CustomerSearchLoadingScreen({
           <div className="hacker-scan absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/20 to-transparent" />
         </div>
         <CardHeader className="relative">
-          <CardTitle>Finding customers</CardTitle>
+          <CardTitle>Finding engineers</CardTitle>
           <CardDescription>
             Scoring lead fit against {painPoints.length} developer pain points.
           </CardDescription>
@@ -1771,11 +1775,11 @@ function CustomerSearchLoadingScreen({
             </div>
             <div className="rounded-lg border p-3">
               <Badge variant="secondary">02</Badge>
-              <p className="mt-2">Clustering likely buyers</p>
+              <p className="mt-2">Matching GitHub evidence</p>
             </div>
             <div className="rounded-lg border p-3">
               <Badge variant="secondary">03</Badge>
-              <p className="mt-2">Ranking account fit</p>
+              <p className="mt-2">Ranking engineer intent</p>
             </div>
           </div>
         </CardContent>
@@ -1801,9 +1805,10 @@ function LeadsTablePanel({
     <>
       <Card className="min-h-0 gap-0 overflow-hidden">
         <CardHeader className="border-b">
-          <CardTitle>Leads</CardTitle>
+          <CardTitle>Engineer leads</CardTitle>
           <CardDescription>
-            Placeholder accounts matched against {companyName} pain points.
+            Engineers matched against {companyName} pain points using public
+            GitHub activity.
           </CardDescription>
         </CardHeader>
         <CardContent className="min-h-0 flex-1 overflow-auto p-0">
