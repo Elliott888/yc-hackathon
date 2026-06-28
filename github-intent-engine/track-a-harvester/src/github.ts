@@ -33,6 +33,11 @@ type GitHubClientOptions = {
   readmeLimit?: number;
   requestTimeoutMs?: number;
   maxManifestFiles?: number;
+  includeReadmes?: boolean;
+  includeFileDiffs?: boolean;
+  maxRetries?: number;
+  retryBaseDelayMs?: number;
+  secondaryRateLimitDelayMs?: number;
 };
 
 export class GitHubClient implements GitHubDataSource {
@@ -50,6 +55,11 @@ export class GitHubClient implements GitHubDataSource {
   private readonly maxChangedFiles: number;
   private readonly readmeLimit: number;
   private readonly maxManifestFiles: number;
+  private readonly includeReadmes: boolean;
+  private readonly includeFileDiffs: boolean;
+  private readonly maxRetries: number;
+  private readonly retryBaseDelayMs: number;
+  private readonly secondaryRateLimitDelayMs: number;
 
   constructor(options: GitHubClientOptions = {}) {
     this.octokit = new Octokit({
@@ -64,6 +74,11 @@ export class GitHubClient implements GitHubDataSource {
     this.maxChangedFiles = options.maxChangedFiles ?? 100;
     this.readmeLimit = options.readmeLimit ?? 20_000;
     this.maxManifestFiles = options.maxManifestFiles ?? 25;
+    this.includeReadmes = options.includeReadmes ?? true;
+    this.includeFileDiffs = options.includeFileDiffs ?? true;
+    this.maxRetries = options.maxRetries ?? 4;
+    this.retryBaseDelayMs = options.retryBaseDelayMs ?? 1_000;
+    this.secondaryRateLimitDelayMs = options.secondaryRateLimitDelayMs ?? 60_000;
   }
 
   async fetchRepo(fullName: string): Promise<RawRepo | null> {
@@ -75,7 +90,7 @@ export class GitHubClient implements GitHubDataSource {
       return null;
     }
 
-    const readmeText = await this.fetchReadmeText(owner, repo, fullName);
+    const readmeText = this.includeReadmes ? await this.fetchReadmeText(owner, repo, fullName) : null;
     return normalizeRepo(repoData.data as unknown as Record<string, unknown>, readmeText, this.readmeLimit);
   }
 
@@ -272,6 +287,10 @@ export class GitHubClient implements GitHubDataSource {
   }
 
   async fetchManifests(repoRecord: RawRepo): Promise<RawManifest[]> {
+    if (this.maxManifestFiles <= 0) {
+      return [];
+    }
+
     const { owner, repo } = parseRepoFullName(repoRecord.full_name);
     const tree = await this.safeRequest("tree", repoRecord.full_name, () =>
       this.octokit.rest.git.getTree({
@@ -616,6 +635,10 @@ export class GitHubClient implements GitHubDataSource {
     pullNumber: number,
     fullName: string
   ): Promise<string[]> {
+    if (!this.includeFileDiffs || this.maxChangedFiles <= 0) {
+      return [];
+    }
+
     const response = await this.safeRequest("pull_files", `${fullName}#${pullNumber}`, () =>
       this.octokit.rest.pulls.listFiles({
         owner,
@@ -635,6 +658,10 @@ export class GitHubClient implements GitHubDataSource {
     sha: string,
     fullName: string
   ): Promise<string[]> {
+    if (!this.includeFileDiffs || this.maxChangedFiles <= 0) {
+      return [];
+    }
+
     const response = await this.safeRequest("commit_files", `${fullName}@${sha}`, () =>
       this.octokit.rest.repos.getCommit({ owner, repo, ref: sha })
     );
@@ -649,27 +676,26 @@ export class GitHubClient implements GitHubDataSource {
     resource: string,
     request: () => Promise<T>
   ): Promise<T | null> {
-    this.stats.requestCount += 1;
-    try {
-      const response = await request();
-      this.updateRateLimit(response);
-      return response;
-    } catch (error) {
-      if (isRetryable(error)) {
-        try {
-          this.stats.requestCount += 1;
-          const retryResponse = await request();
-          this.updateRateLimit(retryResponse);
-          return retryResponse;
-        } catch (retryError) {
-          this.recordRequestFailure(scope, resource, retryError);
+    for (let attempt = 0; attempt <= this.maxRetries; attempt += 1) {
+      this.stats.requestCount += 1;
+      try {
+        const response = await request();
+        this.updateRateLimit(response);
+        return response;
+      } catch (error) {
+        if (!isRetryableGitHubError(error) || attempt >= this.maxRetries) {
+          this.recordRequestFailure(scope, resource, error);
           return null;
         }
+        await sleep(
+          retryDelayMsForError(error, attempt, {
+            retryBaseDelayMs: this.retryBaseDelayMs,
+            secondaryRateLimitDelayMs: this.secondaryRateLimitDelayMs
+          })
+        );
       }
-
-      this.recordRequestFailure(scope, resource, error);
-      return null;
     }
+    return null;
   }
 
   private updateRateLimit(response: unknown): void {
@@ -732,7 +758,54 @@ function statusFromError(error: unknown): number | undefined {
   return typeof status === "number" ? status : undefined;
 }
 
-function isRetryable(error: unknown): boolean {
+export function isRetryableGitHubError(error: unknown): boolean {
   const status = statusFromError(error);
-  return status === undefined || status >= 500;
+  return status === undefined || status === 403 || status === 429 || status >= 500;
+}
+
+export function retryDelayMsForError(
+  error: unknown,
+  attempt: number,
+  options: {
+    retryBaseDelayMs?: number;
+    secondaryRateLimitDelayMs?: number;
+    nowMs?: number;
+  } = {}
+): number {
+  const headers = headersFromError(error);
+  const retryAfter = numberHeader(headers, "retry-after");
+  if (retryAfter !== null) {
+    return Math.max(0, retryAfter * 1000);
+  }
+
+  const remaining = numberHeader(headers, "x-ratelimit-remaining");
+  const reset = numberHeader(headers, "x-ratelimit-reset");
+  if (remaining === 0 && reset !== null) {
+    return Math.max(0, reset * 1000 - (options.nowMs ?? Date.now()) + 1000);
+  }
+
+  const status = statusFromError(error);
+  if (status === 403 || status === 429) {
+    return (options.secondaryRateLimitDelayMs ?? 60_000) * Math.max(1, attempt + 1);
+  }
+
+  return (options.retryBaseDelayMs ?? 1_000) * 2 ** attempt;
+}
+
+function headersFromError(error: unknown): Record<string, unknown> {
+  const record = error as {
+    response?: { headers?: Record<string, unknown> };
+    headers?: Record<string, unknown>;
+  };
+  return record.response?.headers ?? record.headers ?? {};
+}
+
+function numberHeader(headers: Record<string, unknown>, key: string): number | null {
+  const value = headers[key] ?? headers[key.toLowerCase()];
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

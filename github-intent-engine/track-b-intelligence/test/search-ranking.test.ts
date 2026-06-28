@@ -1673,6 +1673,65 @@ describe("search ranking", () => {
     expect(result.results[0]?.evidence_score).toBeGreaterThan(0);
     expect(result.results[1]?.evidence_score).toBe(0);
   });
+
+  test("large-corpus prefilter keeps directly relevant evidence candidates", async () => {
+    const noiseLeads = Array.from({ length: 650 }, (_, index) =>
+      leadFixture({
+        engineer_login: `generic-maintenance-${index}`,
+        score: 120,
+        top_topics: ["realtime"],
+        semantic_document: "generic backend maintenance release cleanup",
+        evidence: [
+          {
+            type: "pull_request",
+            repo: "example/generic",
+            title: `Generic maintenance cleanup ${index}`,
+            text: "release cleanup docs formatting",
+            url: `https://github.com/example/generic/pull/${index}`,
+            created_at: "2026-06-20T10:00:00Z",
+            matched_topics: [],
+            repo_categories: [],
+            contribution_weight: 10
+          }
+        ]
+      })
+    );
+    const directEvidenceLead = leadFixture({
+      engineer_login: "direct-cache-pain",
+      score: 50,
+      top_topics: ["cache invalidation"],
+      semantic_document: "cache invalidation reactive backend state",
+      evidence: [
+        {
+          type: "issue",
+          repo: "supabase/supabase",
+          title: "Cache invalidation leaves dashboard stale after mutation",
+          text: "Users see stale data after mutation until manual refresh.",
+          url: "https://github.com/supabase/supabase/issues/999",
+          created_at: "2026-06-20T10:00:00Z",
+          matched_topics: ["cache invalidation"],
+          repo_categories: ["backend-as-a-service"],
+          contribution_weight: 4
+        }
+      ]
+    });
+    const leads = [...noiseLeads, directEvidenceLead];
+
+    await writeJsonl(join(rootDir, "data", "processed", "ranked_leads.jsonl"), leads);
+    await writeJsonl(
+      join(rootDir, "data", "processed", "engineer_embeddings.jsonl"),
+      leads.map(embeddingFor)
+    );
+
+    const result = await searchLeads({
+      rootDir,
+      query: "Find engineers talking about cache invalidation",
+      limit: 1
+    });
+
+    expect(result.results[0]?.engineer_login).toBe("direct-cache-pain");
+    expect(result.results[0]?.evidence[0]?.title).toContain("Cache invalidation");
+  });
 });
 
 function leadFixture(overrides: Partial<RankedLead>): RankedLead {

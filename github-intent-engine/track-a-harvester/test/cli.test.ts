@@ -12,6 +12,17 @@ describe("parseHarvestArgs", () => {
       requestTimeoutMs: 15000,
       expandRepos: false,
       maxExpandedRepos: 0,
+      skipReadmes: false,
+      skipPullRequests: false,
+      skipIssues: false,
+      skipComments: false,
+      skipCommits: false,
+      skipFileDiffs: false,
+      skipManifests: false,
+      skipReviews: false,
+      skipWorkflows: false,
+      maxManifestFiles: 25,
+      maxUsers: undefined,
       checkpointDir: undefined
     });
 
@@ -34,6 +45,15 @@ describe("parseHarvestArgs", () => {
         "--expand-repos",
         "--max-expanded-repos",
         "8",
+        "--skip-readmes",
+        "--skip-file-diffs",
+        "--skip-manifests",
+        "--skip-reviews",
+        "--skip-workflows",
+        "--max-manifest-files",
+        "0",
+        "--max-users",
+        "25",
         "--checkpoint-dir",
         "data/checkpoints/test"
       ])
@@ -46,6 +66,13 @@ describe("parseHarvestArgs", () => {
       requestTimeoutMs: 5000,
       expandRepos: true,
       maxExpandedRepos: 8,
+      skipReadmes: true,
+      skipFileDiffs: true,
+      skipManifests: true,
+      skipReviews: true,
+      skipWorkflows: true,
+      maxManifestFiles: 0,
+      maxUsers: 25,
       checkpointDir: "data/checkpoints/test"
     });
   });

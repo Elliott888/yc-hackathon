@@ -1,0 +1,13 @@
+{
+  "name": "github-user-deepener",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "dossier": "node src/cli.js dossier"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

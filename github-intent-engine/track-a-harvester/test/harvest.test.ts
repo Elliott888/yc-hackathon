@@ -219,4 +219,138 @@ describe("harvestData", () => {
     expect(result.data.repos[0]?.full_name).toBe("canonical/repo");
     expect(result.data.pullRequests[0]?.repo).toBe("canonical/repo");
   });
+
+  test("can skip expensive detail endpoints and cap fetched users for large harvests", async () => {
+    const calls: string[] = [];
+    const source: GitHubDataSource = {
+      stats: {
+        requestCount: 1,
+        failedRequestCount: 0,
+        rateLimitRemaining: 4000,
+        rateLimitResetAt: null,
+        failures: []
+      },
+      async fetchRepo(fullName) {
+        calls.push(`repo:${fullName}`);
+        return {
+          id: 1,
+          full_name: fullName,
+          owner_login: "owner",
+          owner_type: "Organization",
+          description: null,
+          topics: [],
+          stars: 1,
+          forks: 0,
+          primary_language: "TypeScript",
+          default_branch: "main",
+          is_fork: false,
+          is_archived: false,
+          pushed_at: "2026-06-01T00:00:00Z",
+          readme_text: null,
+          url: `https://github.com/${fullName}`
+        };
+      },
+      async fetchPullRequests(repo) {
+        calls.push(`prs:${repo}`);
+        return [
+          {
+            id: 10,
+            repo,
+            number: 1,
+            title: "Fix realtime bug",
+            body: null,
+            author_login: "pr-author",
+            state: "open",
+            merged: false,
+            created_at: "2026-06-01T00:00:00Z",
+            updated_at: "2026-06-02T00:00:00Z",
+            merged_at: null,
+            changed_files: [],
+            url: `https://github.com/${repo}/pull/1`
+          }
+        ];
+      },
+      async fetchIssues() {
+        calls.push("issues");
+        return [];
+      },
+      async fetchIssueComments() {
+        calls.push("comments");
+        return [];
+      },
+      async fetchCommits() {
+        calls.push("commits");
+        return [];
+      },
+      async fetchManifests() {
+        calls.push("manifests");
+        return [];
+      },
+      async fetchPullRequestReviews() {
+        calls.push("reviews");
+        return [];
+      },
+      async fetchPullRequestReviewComments() {
+        calls.push("review-comments");
+        return [];
+      },
+      async fetchWorkflowRuns() {
+        calls.push("workflows");
+        return [];
+      },
+      async fetchUser(login) {
+        calls.push(`user:${login}`);
+        return {
+          id: login === "owner" ? 20 : 21,
+          login,
+          type: "User",
+          name: null,
+          company: null,
+          location: null,
+          blog: null,
+          email: null,
+          bio: null,
+          public_repos: 1,
+          followers: 0,
+          created_at: "2020-01-01T00:00:00Z",
+          url: `https://github.com/${login}`
+        };
+      }
+    };
+
+    const result = await harvestData({
+      source,
+      repos: ["owner/repo"],
+      since: new Date("2026-06-01T00:00:00Z"),
+      include: {
+        pullRequests: true,
+        issues: false,
+        comments: false,
+        commits: false,
+        manifests: false,
+        reviews: false,
+        workflows: false
+      },
+      maxUsers: 1
+    });
+
+    expect(result.data.pullRequests).toHaveLength(1);
+    expect(result.data.issues).toHaveLength(0);
+    expect(result.data.comments).toHaveLength(0);
+    expect(result.data.commits).toHaveLength(0);
+    expect(result.data.manifests).toHaveLength(0);
+    expect(result.data.pullRequestReviews).toHaveLength(0);
+    expect(result.data.pullRequestReviewComments).toHaveLength(0);
+    expect(result.data.workflowRuns).toHaveLength(0);
+    expect(result.data.users).toHaveLength(1);
+    expect(calls).toContain("prs:owner/repo");
+    expect(calls).not.toContain("issues");
+    expect(calls).not.toContain("comments");
+    expect(calls).not.toContain("commits");
+    expect(calls).not.toContain("manifests");
+    expect(calls).not.toContain("reviews");
+    expect(calls).not.toContain("review-comments");
+    expect(calls).not.toContain("workflows");
+    expect(calls.filter((call) => call.startsWith("user:"))).toHaveLength(1);
+  });
 });
