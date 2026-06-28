@@ -2,6 +2,7 @@ import type { ResponseStreamEvent } from "openai/resources/responses/responses";
 
 import { getOpenAIClient, getOpenAIModel } from "@/lib/openai";
 import {
+  normalizeResearchTarget,
   normalizeWebsite,
   type CompanyResearch,
   type ResearchActivity,
@@ -96,7 +97,7 @@ const RESEARCH_SCHEMA = {
 } as const;
 
 const RESEARCH_INSTRUCTIONS =
-  "You are a senior developer-marketing researcher. Research the official site and relevant public web results, then return concise developer pain points only in the requested schema. Keep every string short. Return 4 to 5 pain points. Return 2 to 3 subpoints per pain point.";
+  "You are a senior developer-marketing researcher. Research the user-provided company, product, website, GitHub repo, or developer problem using official and relevant public web results, then return concise developer pain points only in the requested schema. Keep every string short. Return 2 to 3 pain points. Return 2 to 3 subpoints per pain point.";
 
 function cleanText(value: unknown, fallback: string) {
   return typeof value === "string" && value.trim().length > 0
@@ -114,7 +115,13 @@ function truncateText(value: string, maxLength = 220) {
   return `${normalized.slice(0, maxLength - 1)}...`;
 }
 
-function companyNameFromWebsite(website: string) {
+function companyNameFromResearchTarget(target: string) {
+  const website = normalizeWebsite(target);
+
+  if (!website) {
+    return truncateText(target, 56) || "Research target";
+  }
+
   const hostname = new URL(website).hostname.replace(/^www\./, "");
   const label = hostname.split(".")[0] ?? hostname;
 
@@ -126,16 +133,19 @@ function companyNameFromWebsite(website: string) {
 }
 
 function normalizeResearch(
-  website: string,
+  researchTarget: string,
   parsed: Partial<ResearchOutput>
 ): CompanyResearch {
   const painPoints = Array.isArray(parsed.painPoints)
-    ? parsed.painPoints.slice(0, 8)
+    ? parsed.painPoints.slice(0, 3)
     : [];
 
   return {
-    website,
-    companyName: cleanText(parsed.companyName, new URL(website).hostname),
+    website: researchTarget,
+    companyName: cleanText(
+      parsed.companyName,
+      companyNameFromResearchTarget(researchTarget)
+    ),
     summary: cleanText(
       parsed.summary,
       "Company research completed. Refine the pain points below before finding customers."
@@ -155,7 +165,7 @@ function normalizeResearch(
         "Describe what this developer pain point means."
       ),
       subpoints: Array.isArray(painPoint.subpoints)
-        ? painPoint.subpoints.slice(0, 6).map((subpoint, subpointIndex) => ({
+        ? painPoint.subpoints.slice(0, 3).map((subpoint, subpointIndex) => ({
             id: `pain_${index + 1}_sub_${subpointIndex + 1}`,
             title: cleanText(
               subpoint.title,
@@ -171,14 +181,14 @@ function normalizeResearch(
   };
 }
 
-function createFallbackResearch(website: string): CompanyResearch {
-  const companyName = companyNameFromWebsite(website);
+function createFallbackResearch(researchTarget: string): CompanyResearch {
+  const companyName = companyNameFromResearchTarget(researchTarget);
 
   return {
-    website,
+    website: researchTarget,
     companyName,
     summary:
-      "Research returned incomplete structured data. Confirm the website, then edit these starter pain points before finding customers.",
+      "Research returned incomplete structured data. Confirm the research target, then edit these starter pain points before finding customers.",
     customers: ["Developer teams", "Platform teams", "Engineering leaders"],
     painPoints: [
       {
@@ -245,21 +255,21 @@ function createFallbackResearch(website: string): CompanyResearch {
   };
 }
 
-function parseResearchOutput(website: string, outputText: string) {
+function parseResearchOutput(researchTarget: string, outputText: string) {
   if (!outputText.trim()) {
     return {
-      research: createFallbackResearch(website),
+      research: createFallbackResearch(researchTarget),
       warning: "The model completed without structured research output.",
     };
   }
 
   try {
     const parsed = JSON.parse(outputText) as Partial<ResearchOutput>;
-    const research = normalizeResearch(website, parsed);
+    const research = normalizeResearch(researchTarget, parsed);
 
     if (research.painPoints.length === 0) {
       return {
-        research: createFallbackResearch(website),
+        research: createFallbackResearch(researchTarget),
         warning: "The model returned no editable pain points.",
       };
     }
@@ -267,7 +277,7 @@ function parseResearchOutput(website: string, outputText: string) {
     return { research };
   } catch {
     return {
-      research: createFallbackResearch(website),
+      research: createFallbackResearch(researchTarget),
       warning:
         "The model returned incomplete structured JSON, so starter pain points were generated instead.",
     };
@@ -379,16 +389,33 @@ function responseErrorMessage(
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { website?: unknown };
-    const website =
-      typeof body.website === "string" ? normalizeWebsite(body.website) : "";
+    const body = (await request.json()) as {
+      query?: unknown;
+      website?: unknown;
+    };
+    const rawResearchTarget =
+      typeof body.query === "string"
+        ? body.query
+        : typeof body.website === "string"
+          ? body.website
+          : "";
+    const researchTarget = normalizeResearchTarget(rawResearchTarget);
+    const website = normalizeWebsite(researchTarget);
+    const researchSource = website || researchTarget;
 
-    if (!website) {
+    if (!researchTarget) {
       return Response.json(
-        { error: "Enter a valid website URL." },
+        {
+          error:
+            "Enter a company, product, website, GitHub repo, or developer problem to research.",
+        },
         { status: 400 }
       );
     }
+
+    const researchPrompt = website
+      ? `Research this website: ${website}`
+      : `Research this user request: ${researchTarget}`;
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
@@ -412,7 +439,7 @@ export async function POST(request: Request) {
 
         const finishWithOutput = (rawOutputText: string) => {
           const { research, warning } = parseResearchOutput(
-            website,
+            researchSource,
             rawOutputText
           );
 
@@ -439,7 +466,7 @@ export async function POST(request: Request) {
               kind: "status",
               status: "queued",
               title: "Queued research run",
-              detail: website,
+              detail: researchTarget,
             })
           );
 
@@ -447,7 +474,7 @@ export async function POST(request: Request) {
             {
               model: getOpenAIModel(),
               instructions: RESEARCH_INSTRUCTIONS,
-              input: `Research this website: ${website}\n\nUnderstand what the company does, who buys or uses it, which developer workflows it affects, and the developer pain points it solves. Focus on pain points that can be recognized in source code, APIs, CI/CD, architecture, observability, data pipelines, infrastructure, SDK use, or local developer experience. Keep descriptions under 24 words.`,
+              input: `${researchPrompt}\n\nUnderstand the company, product, repo, or developer problem; who buys or uses it; which developer workflows it affects; and the developer pain points it solves. Focus on pain points that can be recognized in source code, APIs, CI/CD, architecture, observability, data pipelines, infrastructure, SDK use, or local developer experience. Keep descriptions under 24 words.`,
               tools: [{ type: "web_search", search_context_size: "low" }],
               tool_choice: "required",
               include: [
