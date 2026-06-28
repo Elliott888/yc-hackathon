@@ -43,6 +43,9 @@ test("frontend sends company name with pain points and labels results as enginee
     source,
     /body: JSON\.stringify\(\{ painPoints, companyName \}\)/
   );
+  assert.match(source, /Find Engineers/);
+  assert.match(source, /finding engineers/);
   assert.match(source, /Engineer leads/);
+  assert.doesNotMatch(source, /Find Customers/);
   assert.doesNotMatch(source, /Placeholder accounts matched/);
 });

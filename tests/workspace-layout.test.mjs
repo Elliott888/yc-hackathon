@@ -52,10 +52,12 @@ test("code examples render as borderless text rows without icon affordance", () 
 test("leads table uses profile score evidence columns and opens a detail panel", () => {
   const source = read("src/components/chat.tsx");
 
-  assert.match(source, /TableHead>Name<\/TableHead>/);
-  assert.match(source, /TableHead>Profile<\/TableHead>/);
-  assert.match(source, /TableHead>Score<\/TableHead>/);
-  assert.match(source, /TableHead>Evidence<\/TableHead>/);
+  assert.match(source, /<TableHead className="px-4 py-3">Name<\/TableHead>/);
+  assert.match(source, /<TableHead className="px-4 py-3">Profile<\/TableHead>/);
+  assert.match(source, /<TableHead className="w-24 px-4 py-3">Score<\/TableHead>/);
+  assert.match(source, /<TableHead className="px-4 py-3">Evidence<\/TableHead>/);
+  assert.match(source, /min-w-\[560px\] overflow-hidden rounded-lg border bg-card/);
+  assert.match(source, /TableCell className="px-4 py-4 font-medium"/);
   assert.match(source, /function LeadEvidencePanel/);
   assert.match(source, /selectedLead/);
 });

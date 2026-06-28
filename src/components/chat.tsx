@@ -100,6 +100,12 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
+  WORKFLOW_SNAPSHOT_VERSION,
+  clearWorkflowSnapshot,
+  loadWorkflowSnapshot,
+  saveWorkflowSnapshot,
+} from "@/lib/workflow-storage";
+import {
   createLocalId,
   normalizeWebsite,
   type CompanyResearch,
@@ -385,9 +391,57 @@ function useWorkflowState(): WorkflowContextValue {
   const [leads, setLeads] = React.useState<Lead[]>([]);
   const [isChatExpanded, setIsChatExpanded] = React.useState(false);
   const abortControllerRef = React.useRef<AbortController | null>(null);
+  const hasHydratedSnapshotRef = React.useRef(false);
+  const skipNextSnapshotPersistRef = React.useRef(true);
 
   const companyName = research?.companyName ?? "Company";
   const isChatBusy = chatStatus === "streaming";
+
+  React.useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      const snapshot = loadWorkflowSnapshot();
+
+      if (snapshot) {
+        setStage(snapshot.stage);
+        setWebsiteInput(snapshot.websiteInput);
+        setResearch(snapshot.research);
+        setPainPoints(snapshot.painPoints);
+        setMessages(snapshot.messages);
+        setLeads(snapshot.leads);
+        setIsChatExpanded(false);
+      }
+
+      hasHydratedSnapshotRef.current = true;
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
+  }, []);
+
+  React.useEffect(() => {
+    if (!hasHydratedSnapshotRef.current) {
+      return;
+    }
+
+    if (skipNextSnapshotPersistRef.current) {
+      skipNextSnapshotPersistRef.current = false;
+      return;
+    }
+
+    if (stage !== "entry" && stage !== "workspace" && stage !== "leads") {
+      return;
+    }
+
+    saveWorkflowSnapshot({
+      version: WORKFLOW_SNAPSHOT_VERSION,
+      savedAt: Date.now(),
+      stage,
+      websiteInput,
+      research,
+      painPoints,
+      messages,
+      leads,
+    });
+  }, [leads, messages, painPoints, research, stage, websiteInput]);
 
   async function handleWebsiteSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -435,7 +489,7 @@ function useWorkflowState(): WorkflowContextValue {
       setMessages([
         createMessage(
           "assistant",
-          `I researched ${nextResearch.companyName}. I drafted developer pain points on the left; edit them before finding customers.`
+          `I researched ${nextResearch.companyName}. I drafted developer pain points on the left; edit them before finding engineers.`
         ),
       ]);
       setStage("workspace");
@@ -594,6 +648,8 @@ function useWorkflowState(): WorkflowContextValue {
 
   function handleReset() {
     abortControllerRef.current?.abort();
+    clearWorkflowSnapshot();
+    skipNextSnapshotPersistRef.current = true;
     setStage("entry");
     setWebsiteInput("");
     setResearch(null);
@@ -1304,7 +1360,7 @@ function PainPointsPanel({
             onClick={onFindCustomers}
           >
             <DatabaseZapIcon data-icon="inline-start" />
-            Find Customers
+            Find Engineers
           </Button>
         </div>
       </CardFooter>
@@ -1811,15 +1867,15 @@ function LeadsTablePanel({
             GitHub activity.
           </CardDescription>
         </CardHeader>
-        <CardContent className="min-h-0 flex-1 overflow-auto p-0">
-          <div className="min-w-[960px]">
+        <CardContent className="min-h-0 flex-1 overflow-auto p-3 sm:p-4">
+          <div className="min-w-[560px] overflow-hidden rounded-lg border bg-card">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Profile</TableHead>
-                  <TableHead>Score</TableHead>
-                  <TableHead>Evidence</TableHead>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="px-4 py-3">Name</TableHead>
+                  <TableHead className="px-4 py-3">Profile</TableHead>
+                  <TableHead className="w-24 px-4 py-3">Score</TableHead>
+                  <TableHead className="px-4 py-3">Evidence</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1838,14 +1894,16 @@ function LeadsTablePanel({
                       }
                     }}
                   >
-                    <TableCell className="font-medium">{lead.name}</TableCell>
-                    <TableCell className="max-w-xs whitespace-normal">
+                    <TableCell className="px-4 py-4 font-medium">
+                      {lead.name}
+                    </TableCell>
+                    <TableCell className="max-w-xs whitespace-normal px-4 py-4">
                       {lead.profile}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-4">
                       <ScoreBadge score={lead.score} />
                     </TableCell>
-                    <TableCell className="max-w-2xl whitespace-normal">
+                    <TableCell className="max-w-2xl whitespace-normal px-4 py-4">
                       <EvidenceBullets evidence={lead.evidence} compact />
                     </TableCell>
                   </TableRow>
