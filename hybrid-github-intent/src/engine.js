@@ -103,16 +103,18 @@ export async function loadHybridInputs({ structuredRoot, neuralLeadsPath }) {
   const processedDir = path.join(structuredRoot, "data", "processed");
   const rawDir = path.join(structuredRoot, "data", "raw");
 
-  const [structuredLeads, neuralLeads, rawUsers] = await Promise.all([
+  const [structuredLeads, neuralLeads, rawUsers, rawCommits] = await Promise.all([
     readJsonl(path.join(processedDir, "ranked_leads.jsonl")),
     readJsonl(neuralLeadsPath, { optional: true }),
-    readJsonl(path.join(rawDir, "raw_users.jsonl"), { optional: true })
+    readJsonl(path.join(rawDir, "raw_users.jsonl"), { optional: true }),
+    readJsonl(path.join(rawDir, "raw_commits.jsonl"), { optional: true })
   ]);
 
   return {
     structuredLeads,
     neuralLeads,
     rawUsers,
+    rawCommits,
     indexSources: [
       {
         id: path.basename(structuredRoot),
@@ -139,26 +141,36 @@ function mergeHybridInputs(loadedInputs) {
   const structuredByLogin = new Map();
   const neuralByLogin = new Map();
   const usersByLogin = new Map();
+  const commitsByLogin = new Map();
   const sourceSummaries = [];
   let structuredInputCount = 0;
   let neuralInputCount = 0;
   let rawUserInputCount = 0;
+  let rawCommitInputCount = 0;
 
   for (const inputs of loadedInputs) {
     structuredInputCount += inputs.structuredLeads.length;
     neuralInputCount += inputs.neuralLeads.length;
     rawUserInputCount += inputs.rawUsers.length;
+    rawCommitInputCount += inputs.rawCommits?.length ?? 0;
     sourceSummaries.push({
       id: inputs.source?.id ?? inputs.indexSources?.[0]?.id ?? "unknown",
       structured_leads: inputs.structuredLeads.length,
       neural_leads: inputs.neuralLeads.length,
-      raw_users: inputs.rawUsers.length
+      raw_users: inputs.rawUsers.length,
+      raw_commits: inputs.rawCommits?.length ?? 0
     });
 
     for (const user of inputs.rawUsers) {
       const login = normalizeLogin(user.login);
       if (!login) continue;
       usersByLogin.set(login, { ...(usersByLogin.get(login) ?? {}), ...user });
+    }
+
+    for (const commit of inputs.rawCommits ?? []) {
+      const login = normalizeLogin(commit.author_login ?? commit.committer_login);
+      if (!login) continue;
+      commitsByLogin.set(login, [...(commitsByLogin.get(login) ?? []), commit]);
     }
 
     for (const lead of inputs.structuredLeads) {
@@ -178,11 +190,13 @@ function mergeHybridInputs(loadedInputs) {
     structuredLeads: [...structuredByLogin.values()],
     neuralLeads: [...neuralByLogin.values()],
     rawUsers: [...usersByLogin.values()],
+    rawCommits: [...commitsByLogin.values()].flat(),
     indexSources: sourceSummaries,
     inputTotals: {
       structured_leads: structuredInputCount,
       neural_leads: neuralInputCount,
-      raw_users: rawUserInputCount
+      raw_users: rawUserInputCount,
+      raw_commits: rawCommitInputCount
     }
   };
 }
@@ -240,6 +254,7 @@ export function rankHybridLeads({
   structuredLeads,
   neuralLeads,
   rawUsers = [],
+  rawCommits = [],
   indexSources = [],
   inputTotals = null,
   limit = 10,
@@ -250,6 +265,7 @@ export function rankHybridLeads({
   const usersByLogin = new Map(rawUsers.map((user) => [normalizeLogin(user.login), user]));
   const neuralByLogin = new Map(neuralLeads.map((lead) => [normalizeLogin(lead.engineer_login), lead]));
   const structuredByLogin = new Map(structuredLeads.map((lead) => [normalizeLogin(lead.engineer_login), lead]));
+  const rawCommitsByLogin = commitsByLogin(rawCommits);
   const logins = new Set([...structuredByLogin.keys(), ...neuralByLogin.keys()]);
   const candidates = [];
 
@@ -313,7 +329,15 @@ export function rankHybridLeads({
     const scoreOutOfTen = Math.max(0, Math.min(10, Number(finalScore.toFixed(2))));
     if (scoreOutOfTen < 4.5) continue;
 
-    const email = bestAvailableEmail({ user, lead, neural, bestEvidence });
+    const email = bestAvailableEmail({
+      login: lead.engineer_login,
+      user,
+      lead,
+      neural,
+      bestEvidence,
+      rawCommitsByLogin
+    });
+    const company = bestAvailableCompany({ lead, neural, user });
 
     const quality = leadQuality({
       scoreOutOfTen,
@@ -325,7 +349,8 @@ export function rankHybridLeads({
     candidates.push({
       engineer_login: lead.engineer_login,
       name: lead.name ?? neural?.name ?? user?.name ?? null,
-      company: lead.company ?? neural?.company ?? user?.company ?? null,
+      company: company.value,
+      company_source: company.source,
       github_url: user?.url ?? neural?.github_url ?? `https://github.com/${lead.engineer_login}`,
       email,
       icp_fit_score: scoreOutOfTen,
@@ -386,9 +411,11 @@ export function rankHybridLeads({
       structured_leads: inputTotals?.structured_leads ?? structuredLeads.length,
       neural_leads: inputTotals?.neural_leads ?? neuralLeads.length,
       raw_users: inputTotals?.raw_users ?? rawUsers.length,
+      raw_commits: inputTotals?.raw_commits ?? rawCommits.length,
       deduped_structured_leads: structuredLeads.length,
       deduped_neural_leads: neuralLeads.length,
-      deduped_raw_users: rawUsers.length
+      deduped_raw_users: rawUsers.length,
+      deduped_raw_commits: rawCommits.length
     },
     index_sources: indexSources,
     quality_summary: qualitySummary,
@@ -714,15 +741,85 @@ function coverageDiagnosticsFor({ buyerProfile, resultCount, qualitySummary, top
   };
 }
 
-function bestAvailableEmail({ user, lead, neural, bestEvidence }) {
+function commitsByLogin(rawCommits = []) {
+  const byLogin = new Map();
+  for (const commit of rawCommits) {
+    const login = normalizeLogin(commit.author_login ?? commit.committer_login);
+    if (!login) continue;
+    byLogin.set(login, [...(byLogin.get(login) ?? []), commit]);
+  }
+  return byLogin;
+}
+
+function bestAvailableCompany({ lead, neural, user }) {
+  if (lead?.company) return { value: lead.company, source: "structured" };
+  if (neural?.company) return { value: neural.company, source: "neural" };
+  if (user?.company) return { value: user.company, source: "profile" };
+  return { value: null, source: null };
+}
+
+function bestAvailableEmail({ login, user, lead, neural, bestEvidence, rawCommitsByLogin }) {
   const commitEmail = bestEvidence.type === "commit" ? parseEmailFromText(bestEvidence.text) : null;
+  const metadataEmail = bestCommitMetadataEmail(rawCommitsByLogin?.get(normalizeLogin(login)) ?? []);
+  const profileEmail = cleanEmail(user?.email);
+  const leadEmail = cleanEmail(lead?.email);
+  const neuralEmail = cleanEmail(neural?.email);
+  const value = cleanEmail(commitEmail) ?? metadataEmail ?? profileEmail ?? leadEmail ?? neuralEmail ?? null;
+  const source = emailSource({ value, commitEmail, metadataEmail, profileEmail, leadEmail, neuralEmail });
   return {
-    value: commitEmail ?? user?.email ?? lead?.email ?? neural?.email ?? null,
-    source: commitEmail ? "commit_text" : user?.email ? "profile" : null,
-    note: commitEmail
-      ? "Parsed from stored commit text."
-      : "Commit metadata email is not persisted in the current Track A artifacts."
+    value,
+    source,
+    note: emailNote(source)
   };
+}
+
+function bestCommitMetadataEmail(commits) {
+  for (const commit of commits) {
+    const email = cleanEmail(
+      commit.author_email ??
+      commit.committer_email ??
+      commit.email ??
+      commit.author?.email ??
+      commit.committer?.email
+    );
+    if (email) return email;
+  }
+  return null;
+}
+
+function cleanEmail(value) {
+  const email = parseEmailFromText(value);
+  if (!email) return null;
+  const normalized = email.toLowerCase();
+  if (
+    normalized.includes("noreply.github.com") ||
+    normalized.includes("users.noreply.github.com") ||
+    normalized === "noreply@github.com"
+  ) {
+    return null;
+  }
+  return email;
+}
+
+function emailSource({ value, commitEmail, metadataEmail, profileEmail, leadEmail, neuralEmail }) {
+  if (!value) return null;
+  if (cleanEmail(commitEmail) === value) return "commit_text";
+  if (metadataEmail === value) return "commit_metadata";
+  if (profileEmail === value) return "profile";
+  if (leadEmail === value) return "structured";
+  if (neuralEmail === value) return "neural";
+  return "unknown";
+}
+
+function emailNote(source) {
+  const notes = {
+    commit_text: "Parsed from stored commit text.",
+    commit_metadata: "Found in indexed commit metadata.",
+    profile: "Found in public GitHub profile metadata.",
+    structured: "Found in structured lead metadata.",
+    neural: "Found in neural profile metadata."
+  };
+  return notes[source] ?? "No public email found in indexed profile or commit metadata.";
 }
 
 function publicEvidence(evidence) {

@@ -70,6 +70,60 @@ test("hybrid ranker keeps semantically relevant failure evidence even without ex
   assert.equal(result.results[0].sources_used.neural, true);
 });
 
+test("hybrid ranker emits company source and commit metadata email when indexed", () => {
+  const result = rankHybridLeads({
+    query,
+    now: new Date("2026-06-28T12:00:00Z"),
+    rawUsers: [
+      {
+        login: "commit-email-lead",
+        name: "Commit Email Lead",
+        company: "Realtime Startup",
+        bio: "Building collaborative apps",
+        email: null,
+        type: "User"
+      }
+    ],
+    rawCommits: [
+      {
+        author_login: "commit-email-lead",
+        author_email: "founder@realtime.example",
+        repo: "liveblocks/liveblocks",
+        url: "https://github.com/liveblocks/liveblocks/commit/abc"
+      }
+    ],
+    structuredLeads: [
+      {
+        engineer_login: "commit-email-lead",
+        name: "Commit Email Lead",
+        score: 80,
+        evidence: [
+          {
+            type: "issue",
+            repo: "liveblocks/liveblocks",
+            title: "Shared room storage overwrite causes data loss",
+            text: "What happened? Shared room storage overwrites collaborative state and causes data loss for users.",
+            url: "https://github.com/liveblocks/liveblocks/issues/2",
+            created_at: "2026-06-25T12:00:00Z",
+            matched_topics: ["liveblocks", "shared state", "data loss"],
+            contribution_weight: 4
+          }
+        ]
+      }
+    ],
+    neuralLeads: []
+  });
+
+  assert.equal(result.results.length, 1);
+  assert.equal(result.results[0].company, "Realtime Startup");
+  assert.equal(result.results[0].company_source, "profile");
+  assert.deepEqual(result.results[0].email, {
+    value: "founder@realtime.example",
+    source: "commit_metadata",
+    note: "Found in indexed commit metadata."
+  });
+});
+
 test("hybrid ranker excludes own-company maintainers and docs-only activity", () => {
   const result = rankHybridLeads({
     query,

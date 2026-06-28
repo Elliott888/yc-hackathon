@@ -122,7 +122,8 @@ User query in UI
 
 The current CLI already returns the fields needed for the first version of the UI:
 
-- `results[].engineer_login`, `name`, `company`, `github_url`: lead card and right-side profile panel
+- `results[].engineer_login`, `name`, `company`, `company_source`, `github_url`: lead card and right-side profile panel
+- `results[].email.value`, `email.source`, `email.note`: public contact email when the indexed data contains one
 - `results[].icp_fit_score`, `score_breakdown`: intent score ring and ranking bars
 - `results[].trigger`: evidence node, evidence timeline item, and clickable GitHub source
 - `results[].pain_signal`, `why_this_is_high_intent`, `why_convex_fits`: right-side reasoning copy
@@ -158,7 +159,8 @@ Response:
   "inputCounts": {
     "structuredLeads": 981,
     "neuralLeads": 1284,
-    "rawUsers": 1283
+    "rawUsers": 1283,
+    "rawCommits": 1620
   },
   "qualitySummary": {
     "demoReady": 5,
@@ -177,7 +179,13 @@ Response:
       "login": "daylightcreative",
       "name": "Steven Day",
       "company": "DayLight Creative Technologies",
+      "companySource": "profile",
       "githubUrl": "https://github.com/daylightcreative",
+      "email": {
+        "value": null,
+        "source": null,
+        "note": "No public email found in indexed profile or commit metadata."
+      },
       "intentScore": 92,
       "qualityLabel": "demo_ready",
       "scoreBreakdown": {
@@ -203,6 +211,15 @@ Response:
   ]
 }
 ```
+
+Contact enrichment is offline-index based. The hybrid engine checks, in order:
+
+- commit text email on the selected trigger when the trigger is a commit
+- indexed commit metadata fields such as `author_email`, `committer_email`, or `email`
+- public GitHub profile email from `raw_users.jsonl`
+- structured or neural lead metadata email
+
+GitHub noreply addresses are ignored. The current Convex corpus has company for 50 of 156 ranked leads and public profile email for 36 of 156. The raw commit artifacts currently include commit URLs and author logins but not author email fields; once Track A persists commit metadata email, this layer will emit it automatically as `email.source = "commit_metadata"`.
 
 ### Graph Payload
 
@@ -351,4 +368,4 @@ For weak profiles, the backend should not fake confidence. If `result_count` is 
 
 ## Current Limits
 
-This reranker consumes existing artifacts. It does not yet harvest missing fields such as user-level star events with `starred_at` or commit author email from GitHub commit metadata. If those fields are added to Track A, this hybrid layer will be able to use them directly.
+This reranker consumes existing artifacts. It does not itself harvest missing fields such as user-level star events with `starred_at`. It can already consume commit email fields such as `author_email`, `committer_email`, or `email` when Track A persists them, but the current raw commit artifacts mostly do not include those fields yet.
