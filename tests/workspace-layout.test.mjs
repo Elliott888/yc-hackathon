@@ -1,0 +1,50 @@
+import { readFileSync } from "node:fs";
+import { test } from "node:test";
+import assert from "node:assert/strict";
+
+const read = (path) =>
+  readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+
+test("workspace desktop layout makes pain points wider than chat", () => {
+  const source = read("src/components/chat.tsx");
+  const workspace = source.match(
+    /function Workspace\([\s\S]*?\nfunction LeadsWorkspace/
+  )?.[0];
+
+  assert.ok(workspace, "Workspace component should exist");
+  assert.match(
+    workspace,
+    /lg:grid-cols-\[minmax\(340px,420px\)_minmax\(0,1fr\)\]/
+  );
+});
+
+test("pain points panel removes company summary and uses a compact trigger", () => {
+  const source = read("src/components/chat.tsx");
+  const painPointsPanel = source.match(
+    /function PainPointsPanel\([\s\S]*?\nfunction ChatPanel/
+  )?.[0];
+
+  assert.ok(painPointsPanel, "PainPointsPanel component should exist");
+  assert.doesNotMatch(painPointsPanel, /research\.summary|research\.customers/);
+  assert.match(source, /function PainPointTrigger/);
+});
+
+test("code examples render as borderless text rows without icon affordance", () => {
+  const source = read("src/components/chat.tsx");
+
+  assert.doesNotMatch(source, /Code2Icon/);
+  assert.match(source, /function CodeExampleList/);
+  assert.match(source, /font-medium text-foreground/);
+  assert.match(source, /text-muted-foreground/);
+});
+
+test("leads table uses profile score evidence columns and opens a detail panel", () => {
+  const source = read("src/components/chat.tsx");
+
+  assert.match(source, /TableHead>Name<\/TableHead>/);
+  assert.match(source, /TableHead>Profile<\/TableHead>/);
+  assert.match(source, /TableHead>Score<\/TableHead>/);
+  assert.match(source, /TableHead>Evidence<\/TableHead>/);
+  assert.match(source, /function LeadEvidencePanel/);
+  assert.match(source, /selectedLead/);
+});

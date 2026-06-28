@@ -128,3 +128,38 @@
     @apply font-sans;
   }
 }
+
+@keyframes hacker-cell-flicker {
+  0%,
+  100% {
+    opacity: 0.18;
+    transform: translateY(1px) scale(0.98);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1);
+  }
+  72% {
+    opacity: 0.45;
+    transform: translateY(0) scale(0.99);
+  }
+}
+
+@keyframes hacker-scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(420%);
+  }
+}
+
+.hacker-cell {
+  animation-name: hacker-cell-flicker;
+  animation-iteration-count: infinite;
+  animation-timing-function: steps(4, end);
+}
+
+.hacker-scan {
+  animation: hacker-scan 2.4s linear infinite;
+}

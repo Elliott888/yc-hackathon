@@ -1,5 +1,7 @@
-import OpenAI from "openai";
 import type { EasyInputMessage } from "openai/resources/responses/responses";
+
+import { getOpenAIClient, getOpenAIModel } from "@/lib/openai";
+import type { PainPoint } from "@/lib/workflow";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -9,21 +11,7 @@ type ChatMessage = {
 const MAX_MESSAGES = 24;
 const MAX_MESSAGE_CHARS = 4000;
 const SYSTEM_PROMPT =
-  "You are a concise, practical assistant in a simple chat UI. Answer directly, keep formatting readable, and ask a clarifying question only when needed.";
-
-let client: OpenAI | null = null;
-
-function getOpenAIClient() {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY is not configured.");
-  }
-
-  client ??= new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-
-  return client;
-}
+  "You are a concise, practical GTM research assistant. Help refine developer pain points and code-level examples. Answer directly, keep formatting readable, and ask a clarifying question only when needed.";
 
 function readMessages(value: unknown): ChatMessage[] {
   if (!Array.isArray(value)) {
@@ -51,10 +39,72 @@ function readMessages(value: unknown): ChatMessage[] {
     }));
 }
 
+function readPainPoints(value: unknown): PainPoint[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((painPoint): painPoint is PainPoint => {
+      if (!painPoint || typeof painPoint !== "object") {
+        return false;
+      }
+
+      const candidate = painPoint as Partial<PainPoint>;
+
+      return (
+        typeof candidate.title === "string" &&
+        typeof candidate.description === "string" &&
+        Array.isArray(candidate.subpoints)
+      );
+    })
+    .slice(0, 12)
+    .map((painPoint) => ({
+      ...painPoint,
+      title: painPoint.title.slice(0, 160),
+      description: painPoint.description.slice(0, 500),
+      subpoints: painPoint.subpoints
+        .filter(
+          (subpoint) =>
+            subpoint &&
+            typeof subpoint.title === "string" &&
+            typeof subpoint.description === "string"
+        )
+        .slice(0, 8)
+        .map((subpoint) => ({
+          ...subpoint,
+          title: subpoint.title.slice(0, 160),
+          description: subpoint.description.slice(0, 500),
+        })),
+    }));
+}
+
+function buildPainPointContext(painPoints: PainPoint[]) {
+  if (painPoints.length === 0) {
+    return "";
+  }
+
+  return `\n\nCurrent editable pain points:\n${painPoints
+    .map(
+      (painPoint, index) =>
+        `${index + 1}. ${painPoint.title}: ${painPoint.description}\n${painPoint.subpoints
+          .map(
+            (subpoint) =>
+              `   - Code example: ${subpoint.title}: ${subpoint.description}`
+          )
+          .join("\n")}`
+    )
+    .join("\n")}`;
+}
+
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { messages?: unknown };
+    const body = (await request.json()) as {
+      messages?: unknown;
+      painPoints?: unknown;
+    };
     const messages = readMessages(body.messages);
+    const painPoints = readPainPoints(body.painPoints);
 
     if (messages.length === 0 || messages.at(-1)?.role !== "user") {
       return Response.json(
@@ -70,8 +120,8 @@ export async function POST(request: Request) {
 
     const events = await getOpenAIClient().responses.create(
       {
-        model: process.env.OPENAI_MODEL ?? "gpt-5.5",
-        instructions: SYSTEM_PROMPT,
+        model: getOpenAIModel(),
+        instructions: `${SYSTEM_PROMPT}${buildPainPointContext(painPoints)}`,
         input,
         stream: true,
         store: false,

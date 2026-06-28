@@ -1,9 +1,5 @@
-import { Chat } from "@/components/chat";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return (
-    <main className="flex min-h-dvh flex-col bg-background">
-      <Chat />
-    </main>
-  );
+  redirect("/input");
 }
